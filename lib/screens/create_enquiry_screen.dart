@@ -1,0 +1,463 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/enquiry.dart';
+import '../providers/app_provider.dart';
+import '../widgets/premium_toast.dart';
+import '../ui/components/app_icon.dart';
+
+class CreateEnquiryScreen extends StatefulWidget {
+  final Enquiry? enquiry; // If null, create new. If provided, edit.
+
+  const CreateEnquiryScreen({super.key, this.enquiry});
+
+  @override
+  State<CreateEnquiryScreen> createState() => _CreateEnquiryScreenState();
+}
+
+class _CreateEnquiryScreenState extends State<CreateEnquiryScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _locationController;
+  late TextEditingController _requirementsController;
+  late TextEditingController _expectedWindowsController;
+  late TextEditingController _notesController;
+
+  final _nameFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _locationFocus = FocusNode();
+  final _requirementsFocus = FocusNode();
+  final _expectedWindowsFocus = FocusNode();
+  final _notesFocus = FocusNode();
+
+  bool _isSaving = false;
+  final _phoneRegex = RegExp(r'^(\+91[\-\s]?)?[0-9]{10}$');
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.enquiry;
+    _nameController = TextEditingController(text: e?.name ?? '');
+    _phoneController = TextEditingController(text: e?.phone ?? '');
+    _locationController = TextEditingController(text: e?.location ?? '');
+    _requirementsController = TextEditingController(
+      text: e?.requirements ?? '',
+    );
+    _expectedWindowsController = TextEditingController(
+      text: e?.expectedWindows ?? '',
+    );
+    _notesController = TextEditingController(text: e?.notes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _locationController.dispose();
+    _requirementsController.dispose();
+    _expectedWindowsController.dispose();
+    _notesController.dispose();
+    _nameFocus.dispose();
+    _phoneFocus.dispose();
+    _locationFocus.dispose();
+    _requirementsFocus.dispose();
+    _expectedWindowsFocus.dispose();
+    _notesFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isEditing = widget.enquiry != null;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          isEditing ? 'Edit Enquiry' : 'New Enquiry',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: AppIcon(AppIconType.back, color: theme.colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          children: [
+            // ═══════════════════════════════════════════════════════════════
+            // BASIC INFORMATION SECTION
+            // ═══════════════════════════════════════════════════════════════
+            _SectionHeader(
+              icon: AppIconType.customer,
+              title: 'Basic Information',
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+
+            // Name
+            TextFormField(
+              controller: _nameController,
+              focusNode: _nameFocus,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(_phoneFocus),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: _buildInputDecoration(
+                context,
+                'Customer Name *',
+                AppIconType.customer,
+                isDark,
+              ),
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Please enter name' : null,
+            ),
+            const SizedBox(height: 16),
+
+            // Phone
+            TextFormField(
+              controller: _phoneController,
+              focusNode: _phoneFocus,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(_locationFocus),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: _buildInputDecoration(
+                context,
+                'Phone (Optional)',
+                AppIconType.phone,
+                isDark,
+              ),
+              validator: (v) {
+                if (v != null && v.isNotEmpty && !_phoneRegex.hasMatch(v))
+                  return 'Invalid phone';
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Location
+            TextFormField(
+              controller: _locationController,
+              focusNode: _locationFocus,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(_requirementsFocus),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: _buildInputDecoration(
+                context,
+                'Location / Area *',
+                AppIconType.location,
+                isDark,
+              ),
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Please enter location' : null,
+            ),
+            const SizedBox(height: 24),
+
+            // ═══════════════════════════════════════════════════════════════
+            // PROJECT DETAILS SECTION
+            // ═══════════════════════════════════════════════════════════════
+            _SectionHeader(
+              icon: AppIconType.file,
+              title: 'Project Details',
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+
+            // Requirements
+            TextFormField(
+              controller: _requirementsController,
+              focusNode: _requirementsFocus,
+              textInputAction: TextInputAction.next,
+              maxLines: 2,
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(_expectedWindowsFocus),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+              decoration: _buildInputDecoration(
+                context,
+                'Requirements (Optional)',
+                AppIconType.file,
+                isDark,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Expected Windows
+            TextFormField(
+              controller: _expectedWindowsController,
+              focusNode: _expectedWindowsFocus,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(_notesFocus),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: _buildInputDecoration(
+                context,
+                'Expected Windows (Optional)',
+                AppIconType.window,
+                isDark,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // ═══════════════════════════════════════════════════════════════
+            // NOTES SECTION
+            // ═══════════════════════════════════════════════════════════════
+            _SectionHeader(
+              icon: AppIconType.edit,
+              title: 'Additional Notes',
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+
+            // Notes
+            TextFormField(
+              controller: _notesController,
+              focusNode: _notesFocus,
+              textInputAction: TextInputAction.done,
+              maxLines: 3,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+              decoration: _buildInputDecoration(
+                context,
+                'Notes (Optional)',
+                AppIconType.edit,
+                isDark,
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
+            height: 54,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _isSaving ? null : _saveEnquiry,
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      isEditing ? 'Update Enquiry' : 'Create Enquiry',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(
+    BuildContext context,
+    String label,
+    AppIconType icon,
+    bool isDark,
+  ) {
+    final theme = Theme.of(context);
+    final borderColor = isDark
+        ? const Color(0xFF374151)
+        : const Color(0xFFE5E7EB);
+    final fillColor = isDark
+        ? const Color(0xFF1F2937)
+        : const Color(0xFFF9FAFB);
+    final hintColor = isDark
+        ? const Color(0xFF9CA3AF)
+        : const Color(0xFF6B7280);
+    final iconColor = isDark
+        ? const Color(0xFFD1D5DB)
+        : const Color(0xFF374151);
+
+    return InputDecoration(
+      labelText: label,
+      alignLabelWithHint: true,
+      labelStyle: TextStyle(
+        color: hintColor,
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+      ),
+      floatingLabelStyle: TextStyle(
+        color: theme.colorScheme.primary,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+      floatingLabelBehavior: FloatingLabelBehavior.auto,
+      prefixIcon: Padding(
+        padding: const EdgeInsets.only(left: 14, right: 10),
+        child: AppIcon(icon, size: 26, color: iconColor),
+      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 50, minHeight: 50),
+      filled: true,
+      fillColor: fillColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderColor, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderColor, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
+      errorStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+    );
+  }
+
+  Future<void> _saveEnquiry() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSaving = true);
+
+      try {
+        if (widget.enquiry != null) {
+          // UPDATE
+          final updated = widget.enquiry!.copyWith(
+            name: _nameController.text.trim(),
+            location: _locationController.text.trim(),
+            phone: _phoneController.text.trim().isEmpty
+                ? null
+                : _phoneController.text.trim(),
+            requirements: _requirementsController.text.trim().isEmpty
+                ? null
+                : _requirementsController.text.trim(),
+            expectedWindows: _expectedWindowsController.text.trim().isEmpty
+                ? null
+                : _expectedWindowsController.text.trim(),
+            notes: _notesController.text.trim().isEmpty
+                ? null
+                : _notesController.text.trim(),
+            updatedAt: DateTime.now(),
+            syncStatus: 2, // Update
+          );
+
+          await Provider.of<AppProvider>(
+            context,
+            listen: false,
+          ).updateEnquiry(updated);
+
+          if (!mounted) return;
+          Navigator.pop(context); // Pop Create/Edit Screen
+          ToastService.show(context, 'Enquiry updated!');
+        } else {
+          // CREATE
+          final enquiry = Enquiry.create(
+            name: _nameController.text.trim(),
+            location: _locationController.text.trim(),
+            phone: _phoneController.text.trim().isEmpty
+                ? null
+                : _phoneController.text.trim(),
+            requirements: _requirementsController.text.trim().isEmpty
+                ? null
+                : _requirementsController.text.trim(),
+            expectedWindows: _expectedWindowsController.text.trim().isEmpty
+                ? null
+                : _expectedWindowsController.text.trim(),
+            notes: _notesController.text.trim().isEmpty
+                ? null
+                : _notesController.text.trim(),
+          );
+
+          await Provider.of<AppProvider>(
+            context,
+            listen: false,
+          ).addEnquiry(enquiry);
+
+          if (!mounted) return;
+          Navigator.pop(context);
+          ToastService.show(context, 'Enquiry created successfully!');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isSaving = false);
+        ToastService.show(context, 'Error: $e', isError: true);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION HEADER WIDGET
+// ═══════════════════════════════════════════════════════════════════════════
+class _SectionHeader extends StatelessWidget {
+  final AppIconType icon;
+  final String title;
+  final ThemeData theme;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        AppIcon(icon, size: 20, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "417146642196",
+    "project_id": "ddupvc",
+    "storage_bucket": "ddupvc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417146642196:android:a088107f6dbb88a8ca2c01",
+        "android_client_info": {
+          "package_name": "com.example.window_measurement_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBj6ALJcYH4zI6AcsSbRk7DH-GhsStLuQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
