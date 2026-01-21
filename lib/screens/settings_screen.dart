@@ -14,7 +14,6 @@ import '../ui/components/settings_section.dart';
 import '../utils/haptics.dart';
 import 'about_screen.dart';
 import 'log_viewer_screen.dart';
-import 'package:flutter/cupertino.dart';
 
 import '../ui/components/animated_theme_icon.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';

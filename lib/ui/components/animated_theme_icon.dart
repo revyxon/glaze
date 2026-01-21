@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/settings_provider.dart';
 import 'app_icon.dart';
-import '../../utils/app_enums.dart';
 
 class AnimatedThemeIcon extends StatelessWidget {
   const AnimatedThemeIcon({super.key});
