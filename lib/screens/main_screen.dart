@@ -1,19 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:animations/animations.dart';
 import 'dart:math' as math;
 
+import 'package:animations/animations.dart';
+import 'package:flutter/material.dart';
+
+import '../ui/components/app_icon.dart';
 import '../ui/components/app_navigation_bar.dart';
 import '../ui/design_system.dart';
-import '../utils/haptics.dart';
 import '../utils/fast_page_route.dart';
-import 'measurement_list_screen.dart';
-import 'enquiry_list_screen.dart';
-import 'work_agreement_screen.dart';
-import 'settings_screen.dart';
+import '../utils/haptics.dart';
 import 'add_customer_screen.dart';
 import 'create_enquiry_screen.dart';
-import '../services/permission_helper.dart';
-import '../ui/components/app_icon.dart';
+import 'enquiry_list_screen.dart';
+import 'measurement_list_screen.dart';
+import 'settings_screen.dart';
+import 'work_agreement_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -55,16 +55,16 @@ class _MainScreenState extends State<MainScreen>
     super.dispose();
   }
 
-  void _onItemTapped(int index) {
+  Future<void> _onItemTapped(int index) async {
     if (_selectedIndex != index) {
-      Haptics.light();
+      await Haptics.light();
       _closeFab();
       setState(() => _selectedIndex = index);
     }
   }
 
-  void _toggleFab() {
-    Haptics.medium();
+  Future<void> _toggleFab() async {
+    await Haptics.medium();
     setState(() {
       _isFabExpanded = !_isFabExpanded;
       if (_isFabExpanded) {
@@ -86,13 +86,6 @@ class _MainScreenState extends State<MainScreen>
 
   void _navigateToCreateMeasurement() {
     _closeFab();
-    if (!PermissionHelper().checkAndShowDialog(
-      context,
-      'create_customer',
-      'Customer Creation',
-    )) {
-      return;
-    }
     Navigator.push(context, FastPageRoute(page: const AddCustomerScreen()));
   }
 

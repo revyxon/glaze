@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'firestore_service.dart';
+
 import 'app_logger.dart';
+import 'firestore_service.dart';
 
 class UpdateService {
   static final UpdateService _instance = UpdateService._internal();
@@ -27,12 +28,15 @@ class UpdateService {
       try {
         response = await http.get(uri).timeout(const Duration(seconds: 10));
       } catch (e) {
-        _logger.warn('UPDATE', 'GitHub check failed: $e');
+        await _logger.warn('UPDATE', 'GitHub check failed: $e');
         return UpdateCheckResult(hasUpdate: false, error: 'Network error');
       }
 
       if (response.statusCode != 200) {
-        _logger.error('UPDATE', 'GitHub API error: ${response.statusCode}');
+        await _logger.error(
+          'UPDATE',
+          'GitHub API error: ${response.statusCode}',
+        );
         return UpdateCheckResult(
           hasUpdate: false,
           error: 'Update server unavailable',
@@ -86,7 +90,7 @@ class UpdateService {
       final bool isForceUpdate = releaseNotes.contains('[FORCE]');
       final bool skipAllowed = !isForceUpdate && skipCount < 3;
 
-      _logger.info(
+      await _logger.info(
         'UPDATE',
         'Update found: $latestVersion (Mandatory: $isForceUpdate) from GitHub',
       );
@@ -101,7 +105,7 @@ class UpdateService {
         skipCount: skipCount,
       );
     } catch (e) {
-      _logger.error('UPDATE', 'Update check failed: $e');
+      await _logger.error('UPDATE', 'Update check failed: $e');
       return UpdateCheckResult(hasUpdate: false, error: e.toString());
     }
   }
@@ -119,19 +123,33 @@ class UpdateService {
 
   bool _isNewer(String current, String latest) {
     // Strip build numbers (e.g., 1.0.0+1 -> 1.0.0)
-    String currentClean = current.split('+')[0];
-    String latestClean = latest.split('+')[0];
+    final String currentClean = current.split('+')[0];
+    final String latestClean = latest.split('+')[0];
 
-    List<int> currentParts = currentClean.split('.').map(int.parse).toList();
-    List<int> latestParts = latestClean.split('.').map(int.parse).toList();
+    final List<int> currentParts = currentClean
+        .split('.')
+        .map(int.parse)
+        .toList();
+    final List<int> latestParts = latestClean
+        .split('.')
+        .map(int.parse)
+        .toList();
 
     // Ensure we have at least 3 parts for comparison
-    while (currentParts.length < 3) currentParts.add(0);
-    while (latestParts.length < 3) latestParts.add(0);
+    while (currentParts.length < 3) {
+      currentParts.add(0);
+    }
+    while (latestParts.length < 3) {
+      latestParts.add(0);
+    }
 
     for (int i = 0; i < 3; i++) {
-      if (latestParts[i] > currentParts[i]) return true;
-      if (latestParts[i] < currentParts[i]) return false;
+      if (latestParts[i] > currentParts[i]) {
+        return true;
+      }
+      if (latestParts[i] < currentParts[i]) {
+        return false;
+      }
     }
     return false;
   }

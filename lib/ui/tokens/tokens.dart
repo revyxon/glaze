@@ -2,6 +2,8 @@
 ///
 /// Central export for all design tokens.
 
-export 'spacing.dart';
-export 'durations.dart';
+library;
+
 export 'colors.dart';
+export 'durations.dart';
+export 'spacing.dart';

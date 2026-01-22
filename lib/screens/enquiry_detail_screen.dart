@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../models/enquiry.dart';
 import '../providers/app_provider.dart';
 import '../providers/settings_provider.dart';
@@ -51,9 +52,16 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
   }
 
   Future<void> _updateStatus(String newStatus) async {
-    if (_currentStatus == newStatus) return;
+    if (_currentStatus == newStatus) {
+      return;
+    }
     final settings = context.read<SettingsProvider>();
-    if (settings.hapticFeedback) Haptics.medium();
+    if (settings.hapticFeedback) {
+      await Haptics.medium();
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() => _isUpdating = true);
 
     try {
@@ -90,7 +98,9 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null || !mounted) return;
+    if (date == null || !mounted) {
+      return;
+    }
 
     final time = await showTimePicker(
       context: context,
@@ -99,7 +109,10 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
             DateTime.now().add(const Duration(hours: 1)),
       ),
     );
-    if (time == null || !mounted) return;
+    if (time == null || !mounted) {
+      return;
+    }
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
 
     final dt = DateTime(
       date.year,
@@ -108,7 +121,9 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
       time.hour,
       time.minute,
     );
-    if (settings.hapticFeedback) Haptics.medium();
+    if (settings.hapticFeedback) {
+      await Haptics.medium();
+    }
     setState(() => _isUpdating = true);
 
     try {
@@ -117,10 +132,8 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
         updatedAt: DateTime.now(),
         syncStatus: 2,
       );
-      await Provider.of<AppProvider>(
-        context,
-        listen: false,
-      ).updateEnquiry(updated);
+
+      await appProvider.updateEnquiry(updated);
       if (mounted) {
         setState(() => _isUpdating = false);
         ToastService.show(
@@ -143,8 +156,12 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
     buffer.writeln('*NEW ENQUIRY - ${e.status.toUpperCase()}*');
     buffer.writeln('========================');
     buffer.writeln('*Name*     : ${e.name}');
-    if (e.location != null) buffer.writeln('*Location* : ${e.location}');
-    if (e.phone != null) buffer.writeln('*Phone*    : ${e.phone}');
+    if (e.location != null) {
+      buffer.writeln('*Location* : ${e.location}');
+    }
+    if (e.phone != null) {
+      buffer.writeln('*Phone*    : ${e.phone}');
+    }
     buffer.writeln('*Date*     : $dateStr');
     buffer.writeln('');
 
@@ -178,7 +195,12 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
         builder: (_) => CreateEnquiryScreen(enquiry: widget.enquiry),
       ),
     );
-    if (mounted) Navigator.pop(context);
+    if (!mounted) {
+      return;
+    }
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _call(String phone) async {
@@ -189,8 +211,9 @@ class _EnquiryDetailScreenState extends State<EnquiryDetailScreen> {
       await launchUrl(uri);
     } else {
       // Fallback or Toast
-      if (mounted)
+      if (mounted) {
         ToastService.show(context, 'Could not launch dialer', isError: true);
+      }
     }
   }
 

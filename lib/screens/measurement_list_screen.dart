@@ -1,26 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/activity_log.dart';
 import '../providers/app_provider.dart';
-
-import '../ui/tokens/spacing.dart';
-import '../ui/design_system.dart';
+import '../services/data_import_service.dart';
+import '../services/log_service.dart';
+import '../services/sync_service.dart';
+import '../ui/components/animated_theme_icon.dart';
 import '../ui/components/app_header.dart';
 import '../ui/components/app_icon.dart';
-import '../ui/components/animated_theme_icon.dart';
 import '../ui/components/app_search_bar.dart';
-import '../utils/haptics.dart';
-import '../utils/fast_page_route.dart';
-import '../widgets/skeleton_loader.dart';
-import '../widgets/customer_card.dart';
-
-import '../services/sync_service.dart';
-import '../services/log_service.dart';
-import '../services/data_import_service.dart';
-import '../models/activity_log.dart';
-import '../widgets/premium_toast.dart';
-import '../utils/globals.dart';
-import 'add_customer_screen.dart';
+import '../ui/design_system.dart';
 import '../ui/dialogs/restore_dialog.dart';
+import '../ui/tokens/spacing.dart';
+import '../utils/fast_page_route.dart';
+import '../utils/globals.dart';
+import '../utils/haptics.dart';
+import '../widgets/customer_card.dart';
+import '../widgets/premium_toast.dart';
+import '../widgets/skeleton_loader.dart';
+import 'add_customer_screen.dart';
 
 class MeasurementListScreen extends StatefulWidget {
   const MeasurementListScreen({super.key});
@@ -38,6 +37,9 @@ class _MeasurementListScreenState extends State<MeasurementListScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) {
+        return;
+      }
       final provider = Provider.of<AppProvider>(context, listen: false);
       provider.loadCustomers();
 
@@ -65,16 +67,20 @@ class _MeasurementListScreenState extends State<MeasurementListScreen> {
 
       final result = await DataImportService().importFromFile(filePath);
 
+      if (!mounted || !context.mounted) {
+        return;
+      }
+
       if (result['success'] == true) {
         ToastService.show(context, result['message'], isError: false);
-        if (mounted) {
-          Provider.of<AppProvider>(context, listen: false).loadCustomers();
-        }
+        await Provider.of<AppProvider>(context, listen: false).loadCustomers();
       } else {
         ToastService.show(context, result['message'], isError: true);
       }
     } catch (e) {
-      ToastService.show(context, 'Import failed: $e', isError: true);
+      if (mounted && context.mounted) {
+        ToastService.show(context, 'Import failed: $e', isError: true);
+      }
     }
   }
 
@@ -85,11 +91,15 @@ class _MeasurementListScreenState extends State<MeasurementListScreen> {
   }
 
   Future<void> _triggerManualSync() async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      return;
+    }
     setState(() => _isSyncing = true);
-    Haptics.medium();
+    unawaited(Haptics.medium());
 
-    LogService().logEvent(ActionNames.manualSync, page: ScreenNames.home);
+    unawaited(
+      LogService().logEvent(ActionNames.manualSync, page: ScreenNames.home),
+    );
 
     try {
       final error = await SyncService().syncData();
@@ -105,7 +115,9 @@ class _MeasurementListScreenState extends State<MeasurementListScreen> {
         ToastService.show(context, 'Sync failed: $e', isError: true);
       }
     } finally {
-      if (mounted) setState(() => _isSyncing = false);
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
     }
   }
 

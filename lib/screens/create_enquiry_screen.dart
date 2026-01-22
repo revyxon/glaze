@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/enquiry.dart';
 import '../providers/app_provider.dart';
-import '../widgets/premium_toast.dart';
 import '../ui/components/app_icon.dart';
+import '../widgets/premium_toast.dart';
 
 class CreateEnquiryScreen extends StatefulWidget {
   final Enquiry? enquiry; // If null, create new. If provided, edit.
@@ -145,8 +145,9 @@ class _CreateEnquiryScreenState extends State<CreateEnquiryScreen> {
                 isDark,
               ),
               validator: (v) {
-                if (v != null && v.isNotEmpty && !_phoneRegex.hasMatch(v))
+                if (v != null && v.isNotEmpty && !_phoneRegex.hasMatch(v)) {
                   return 'Invalid phone';
+                }
                 return null;
               },
             ),
@@ -389,7 +390,9 @@ class _CreateEnquiryScreenState extends State<CreateEnquiryScreen> {
             listen: false,
           ).updateEnquiry(updated);
 
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
           Navigator.pop(context); // Pop Create/Edit Screen
           ToastService.show(context, 'Enquiry updated!');
         } else {
@@ -416,12 +419,16 @@ class _CreateEnquiryScreenState extends State<CreateEnquiryScreen> {
             listen: false,
           ).addEnquiry(enquiry);
 
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
           Navigator.pop(context);
           ToastService.show(context, 'Enquiry created successfully!');
         }
       } catch (e) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         setState(() => _isSaving = false);
         ToastService.show(context, 'Error: $e', isError: true);
       }

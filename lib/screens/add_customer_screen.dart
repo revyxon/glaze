@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../config/app_data.dart';
 import '../models/customer.dart';
 import '../providers/app_provider.dart';
+import '../ui/components/app_icon.dart';
 import '../utils/fast_page_route.dart';
 import '../widgets/premium_toast.dart';
-import '../config/app_data.dart';
-import '../ui/components/app_icon.dart';
+
 import 'window_input_screen.dart';
-import 'customer_detail_screen.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   final Customer? customerToEdit;
@@ -167,8 +168,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                 AppIconType.phone,
               ),
               validator: (v) {
-                if (v != null && v.isNotEmpty && !_phoneRegex.hasMatch(v))
+                if (v != null && v.isNotEmpty && !_phoneRegex.hasMatch(v)) {
                   return 'Invalid phone';
+                }
                 return null;
               },
             ),
@@ -280,10 +282,10 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
               ),
               child: Row(
                 children: [
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Final Measurement',
                           style: TextStyle(
@@ -456,7 +458,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   }
 
   Future<void> _saveCustomer() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     final glassType = _selectedGlassType == 'Other'
         ? _customGlassController.text.trim()
@@ -479,7 +483,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         context,
         listen: false,
       ).updateCustomer(updated);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       Navigator.pop(context, updated);
       ToastService.show(context, 'Customer updated!');
     } else {
@@ -499,14 +505,16 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         context,
         listen: false,
       ).addCustomer(customer);
-      if (!mounted) return;
-      Navigator.pushReplacement(
+      if (!mounted) {
+        return;
+      }
+      // Navigate directly to WindowInputScreen, replacing AddCustomerScreen
+      // Stack becomes: Home -> WindowInputScreen
+      await Navigator.pushReplacement(
         context,
-        FastPageRoute(page: CustomerDetailScreen(customer: saved)),
-      );
-      Navigator.push(
-        context,
-        FastPageRoute(page: WindowInputScreen(customer: saved)),
+        FastPageRoute(
+          page: WindowInputScreen(customer: saved, isNewFlow: true),
+        ),
       );
     }
   }

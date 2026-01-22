@@ -1,17 +1,17 @@
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:intl/intl.dart';
+
+import '../../config/app_data.dart';
 import '../../models/customer.dart';
 import '../../models/window.dart';
-import '../../config/app_data.dart';
 
 class MeasurementPdf {
   // Brand Colors - Clean & Professional
-  static final _primaryColor = PdfColor.fromHex('#00897B'); // Teal
-  static final _black = PdfColors.black;
-  static final _darkColor = PdfColor.fromHex('#1F2937'); // Gray 800
-  static final _lightColor = PdfColor.fromHex('#6B7280'); // Gray 500
-  static final _borderColor = PdfColor.fromHex('#E5E7EB');
+  static const _black = PdfColors.black;
+  static const _darkColor = PdfColor.fromInt(0xFF1F2937); // Gray 800
+  static const _lightColor = PdfColor.fromInt(0xFF6B7280); // Gray 500
+  static const _borderColor = PdfColor.fromInt(0xFFE5E7EB);
 
   static Future<pw.Document> generate({
     required Customer customer,
@@ -76,39 +76,30 @@ class MeasurementPdf {
               style: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 fontSize: 20,
-                color: _primaryColor, // Revert to Brand Color for Logo effect
+                color: _black, // Clean Black
               ),
             ),
             pw.SizedBox(height: 4),
             pw.Text(
               'Kudri (Medical College Road), Shahdol, M.P.',
-              style: pw.TextStyle(fontSize: 10, color: _darkColor),
+              style: const pw.TextStyle(fontSize: 10, color: _darkColor),
             ),
             pw.Text(
               '+91 9826414729  |  ddupvcwindowsystem@gmail.com',
-              style: pw.TextStyle(fontSize: 10, color: _darkColor),
+              style: const pw.TextStyle(fontSize: 10, color: _darkColor),
             ),
           ],
         ),
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Container(
-              padding: const pw.EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
-              decoration: pw.BoxDecoration(
-                color: _primaryColor,
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
-              ),
-              child: pw.Text(
-                'MEASUREMENT SHEET',
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 12,
-                  color: PdfColors.white,
-                ),
+            pw.Text(
+              'MEASUREMENT SHEET',
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 14,
+                color: _black,
+                letterSpacing: 1.2,
               ),
             ),
             pw.SizedBox(height: 8),
@@ -159,7 +150,7 @@ class MeasurementPdf {
               ),
               pw.Text(
                 customer.location,
-                style: pw.TextStyle(fontSize: 10, color: _lightColor),
+                style: const pw.TextStyle(fontSize: 10, color: _lightColor),
               ),
             ],
           ),
@@ -176,11 +167,9 @@ class MeasurementPdf {
                       horizontal: 6,
                       vertical: 2,
                     ),
-                    decoration: pw.BoxDecoration(
+                    decoration: const pw.BoxDecoration(
                       color: _black,
-                      borderRadius: const pw.BorderRadius.all(
-                        pw.Radius.circular(2),
-                      ),
+                      borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
                     ),
                     child: pw.Text(
                       'FINALIZED',
@@ -208,7 +197,7 @@ class MeasurementPdf {
             width: 60,
             child: pw.Text(
               label,
-              style: pw.TextStyle(fontSize: 9, color: _lightColor),
+              style: const pw.TextStyle(fontSize: 9, color: _lightColor),
             ),
           ),
           pw.Text(
@@ -240,7 +229,7 @@ class MeasurementPdf {
       children: [
         // Header
         pw.TableRow(
-          decoration: pw.BoxDecoration(color: PdfColors.grey100),
+          decoration: const pw.BoxDecoration(color: PdfColors.grey100),
           children: [
             _buildHeaderCell('#', textColor: _darkColor),
             _buildHeaderCell('SIZE (mm)', textColor: _darkColor),
@@ -376,7 +365,7 @@ class MeasurementPdf {
               children: [
                 pw.Text(
                   '$totalQty Windows',
-                  style: pw.TextStyle(color: _black, fontSize: 10),
+                  style: const pw.TextStyle(color: _black, fontSize: 10),
                 ),
                 pw.SizedBox(width: 20),
                 pw.Container(width: 1, height: 12, color: _lightColor),
@@ -407,11 +396,11 @@ class MeasurementPdf {
           children: [
             pw.Text(
               'Generated via DD UPVC App',
-              style: pw.TextStyle(fontSize: 8, color: _lightColor),
+              style: const pw.TextStyle(fontSize: 8, color: _lightColor),
             ),
             pw.Text(
               'Page ${context.pageNumber} of ${context.pagesCount}',
-              style: pw.TextStyle(fontSize: 8, color: _lightColor),
+              style: const pw.TextStyle(fontSize: 8, color: _lightColor),
             ),
           ],
         ),

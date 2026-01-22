@@ -43,7 +43,9 @@ class EnquiryCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: AppCard(
         onPressed: () {
-          if (settings.hapticFeedback) Haptics.light();
+          if (settings.hapticFeedback) {
+            Haptics.light();
+          }
           onTap?.call();
         },
         child: Column(

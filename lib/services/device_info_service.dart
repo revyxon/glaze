@@ -11,7 +11,9 @@ class DeviceInfoService {
 
   /// Get complete device fingerprint data
   Future<Map<String, dynamic>> getCompleteDeviceInfo() async {
-    if (_cachedInfo != null) return _cachedInfo!;
+    if (_cachedInfo != null) {
+      return _cachedInfo!;
+    }
 
     final info = <String, dynamic>{
       'platform': Platform.operatingSystem,

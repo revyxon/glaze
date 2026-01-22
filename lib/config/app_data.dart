@@ -33,7 +33,9 @@ class AppData {
   ];
 
   static String getWindowName(String code) {
-    if (code == 'CUST') return 'Custom Window';
+    if (code == 'CUST') {
+      return 'Custom Window';
+    }
     return windowTypes
         .firstWhere(
           (t) => t.code == code,

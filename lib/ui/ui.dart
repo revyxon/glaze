@@ -3,5 +3,7 @@
 /// Central export for the entire design system.
 /// Import this file to access all tokens and components.
 
-export 'tokens/tokens.dart';
+library;
+
 export 'components/components.dart';
+export 'tokens/tokens.dart';

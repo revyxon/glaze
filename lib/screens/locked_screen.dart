@@ -1,6 +1,7 @@
 import 'dart:ui';
-import 'package:flutter/material.dart';
+
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/device_id_service.dart';
@@ -272,7 +273,9 @@ class _LockedScreenState extends State<LockedScreen> {
                     FutureBuilder<String>(
                       future: DeviceIdService.instance.getDeviceId(),
                       builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const SizedBox.shrink();
+                        if (!snapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
                         return Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(

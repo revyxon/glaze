@@ -108,16 +108,24 @@ class _ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (var particle in particles) {
       // Move particle
-      double dx = cos(particle.theta) * particle.speed * 0.005;
-      double dy = sin(particle.theta) * particle.speed * 0.005;
+      final double dx = cos(particle.theta) * particle.speed * 0.005;
+      final double dy = sin(particle.theta) * particle.speed * 0.005;
 
       particle.position += Offset(dx, dy);
 
       // Wrap around screen
-      if (particle.position.dx < 0) particle.position += const Offset(1, 0);
-      if (particle.position.dx > 1) particle.position -= const Offset(1, 0);
-      if (particle.position.dy < 0) particle.position += const Offset(0, 1);
-      if (particle.position.dy > 1) particle.position -= const Offset(0, 1);
+      if (particle.position.dx < 0) {
+        particle.position += const Offset(1, 0);
+      }
+      if (particle.position.dx > 1) {
+        particle.position -= const Offset(1, 0);
+      }
+      if (particle.position.dy < 0) {
+        particle.position += const Offset(0, 1);
+      }
+      if (particle.position.dy > 1) {
+        particle.position -= const Offset(0, 1);
+      }
 
       // Draw
       final paint = Paint()

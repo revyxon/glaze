@@ -2,7 +2,7 @@ import '../config/app_data.dart';
 
 class WindowCalculator {
   // Divisors for SqFt calculation
-  static const double _divisorDisplayed = AppData.divisionFactor;
+  static const double _divisorDisplayed = 90903.0; // 1000 * 1000 / 11
   static const double _divisorActual = AppData.adminDivisionFactor;
 
   /// Calculates the SqFt displayed to the customer (using the custom divisor)

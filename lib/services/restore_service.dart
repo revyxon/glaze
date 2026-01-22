@@ -1,6 +1,6 @@
 import '../db/database_helper.dart';
-import 'firestore_service.dart';
 import 'app_logger.dart';
+import 'firestore_service.dart';
 
 class RestoreResults {
   final int customers;
@@ -48,7 +48,7 @@ class RestoreService {
       );
 
       onProgress('Restoring ${customers.length} Customers...', 0.3);
-      for (var data in customers) {
+      for (final data in customers) {
         await db.upsertCustomerFromRemote(data);
       }
       customerCount = customers.length;
@@ -65,7 +65,7 @@ class RestoreService {
       // We can use upsertWindowFromRemote loop for safety or add a batch method.
       // For 1000s of records, a loop is slow.
       // Let's use loop for now, optimize if needed.
-      for (var data in windows) {
+      for (final data in windows) {
         await db.upsertWindowFromRemote(data);
       }
       windowCount = windows.length;
@@ -77,7 +77,7 @@ class RestoreService {
       );
 
       onProgress('Restoring ${enquiries.length} Enquiries...', 0.9);
-      for (var data in enquiries) {
+      for (final data in enquiries) {
         await db.upsertEnquiryFromRemote(data);
       }
       enquiryCount = enquiries.length;

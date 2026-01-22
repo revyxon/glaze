@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import '../db/database_helper.dart';
 import '../models/customer.dart';
 import '../models/window.dart';
-import '../db/database_helper.dart';
 import 'app_logger.dart';
 
 class DataImportService {
@@ -10,7 +10,7 @@ class DataImportService {
   factory DataImportService() => _instance;
   DataImportService._internal();
 
-  final _logger = AppLogger();
+  final AppLogger _logger = AppLogger();
 
   Future<Map<String, dynamic>> importFromFile(String filePath) async {
     try {
@@ -36,10 +36,10 @@ class DataImportService {
         list = [jsonData];
       }
 
-      for (var item in list) {
+      for (final item in list) {
         if (item is Map<String, dynamic>) {
           // Try Standard vs Legacy
-          Customer? customer = _parseCustomer(item);
+          final Customer? customer = _parseCustomer(item);
           if (customer != null) {
             // Save Customer
             // Check duplicates? For now, we assume simple import = create new or update if ID matches?
@@ -62,8 +62,8 @@ class DataImportService {
 
             // Parse Windows
             final windowsList = _extractWindows(item);
-            for (var wMap in windowsList) {
-              Window? win = _parseWindow(wMap);
+            for (final wMap in windowsList) {
+              final Window? win = _parseWindow(wMap);
               if (win != null) {
                 await DatabaseHelper.instance.createWindow(
                   win.copyWith(
@@ -85,7 +85,7 @@ class DataImportService {
             'Imported $customersImported customers and $windowsImported windows',
       };
     } catch (e) {
-      _logger.error('IMPORT', 'Failed to import', e.toString());
+      await _logger.error('IMPORT', 'Failed to import', e.toString());
       return {'success': false, 'message': 'Import failed: $e'};
     }
   }

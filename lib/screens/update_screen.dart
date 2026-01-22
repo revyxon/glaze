@@ -1,15 +1,15 @@
+import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'dart:ui';
 import '../services/update_service.dart';
-import '../widgets/animated_press_button.dart';
-import '../ui/components/particle_background.dart';
 import '../ui/components/app_icon.dart';
+import '../ui/components/particle_background.dart';
 import '../ui/design_system.dart';
+import '../widgets/animated_press_button.dart';
 
 class UpdateScreen extends StatefulWidget {
   final UpdateCheckResult updateResult;
@@ -90,10 +90,12 @@ class _UpdateScreenState extends State<UpdateScreen>
         throw Exception('Could not launch installer: ${result.message}');
       }
     } catch (e) {
-      setState(() {
-        _error = 'Download failed: $e';
-        _isDownloading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Download failed: $e';
+          _isDownloading = false;
+        });
+      }
     }
   }
 
@@ -231,7 +233,7 @@ class _UpdateScreenState extends State<UpdateScreen>
                             child: Markdown(
                               data:
                                   widget.updateResult.releaseNotes ??
-                                  "• General improvements",
+                                  '• General improvements',
                               padding: const EdgeInsets.all(20),
                               styleSheet: MarkdownStyleSheet(
                                 p: AppTypography.bodyMedium.copyWith(
@@ -329,7 +331,7 @@ class _UpdateScreenState extends State<UpdateScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Downloading...', style: AppTypography.labelLarge),
+              const Text('Downloading...', style: AppTypography.labelLarge),
               Text(
                 '${(_downloadProgress * 100).toInt()}%',
                 style: AppTypography.labelLarge.copyWith(
@@ -350,7 +352,7 @@ class _UpdateScreenState extends State<UpdateScreen>
               _error!,
               style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
             ),
-            TextButton(onPressed: _startUpdate, child: const Text("Retry")),
+            TextButton(onPressed: _startUpdate, child: const Text('Retry')),
           ],
         ],
       ),
@@ -378,9 +380,9 @@ class _UpdateScreenState extends State<UpdateScreen>
               ],
             ),
             alignment: Alignment.center,
-            child: Text(
+            child: const Text(
               'UPDATE NOW',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,

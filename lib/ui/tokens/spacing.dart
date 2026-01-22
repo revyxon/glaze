@@ -3,6 +3,8 @@
 /// A strict spacing scale for consistent layouts.
 /// Use these values instead of arbitrary padding/margins.
 
+library;
+
 abstract class Spacing {
   /// 4dp - Tight spacing (icons, inline elements)
   static const double xs = 4;

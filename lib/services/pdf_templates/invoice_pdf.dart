@@ -1,10 +1,11 @@
 // ignore_for_file: unused_element, unused_import
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:intl/intl.dart';
+
+import '../../config/app_data.dart';
 import '../../models/customer.dart';
 import '../../models/window.dart';
-import '../../config/app_data.dart';
 
 /// InvoicePdf - Strict Replica of PrintInvoicePage.tsx
 class InvoicePdf {
@@ -183,7 +184,7 @@ class InvoicePdf {
                     style: pw.TextStyle(
                       font: fontBold,
                       fontSize: 10,
-                      color: PdfColor.fromInt(0xFF555555),
+                      color: const PdfColor.fromInt(0xFF555555),
                     ),
                   ),
                   pw.SizedBox(height: 2),
@@ -306,11 +307,9 @@ class InvoicePdf {
             }
           }
 
-          final isEven = (i % 2) == 0;
-
           return pw.TableRow(
-            decoration: pw.BoxDecoration(
-              color: isEven ? PdfColor.fromInt(0xFFFAFAFA) : white,
+            decoration: const pw.BoxDecoration(
+              color: PdfColor.fromInt(0xFFFAFAFA),
             ),
             children: [
               _td('$i', font),
@@ -333,7 +332,7 @@ class InvoicePdf {
             final n = windows.length + idx + 1;
             return pw.TableRow(
               children: [
-                _td('$n', font, color: PdfColor.fromInt(0xFFCCCCCC)),
+                _td('$n', font, color: const PdfColor.fromInt(0xFFCCCCCC)),
                 _td('', font),
                 _td('', font),
                 _td('', font),
@@ -444,7 +443,7 @@ class InvoicePdf {
                     style: pw.TextStyle(
                       font: fontBold,
                       fontSize: 10,
-                      color: PdfColor.fromInt(0xFF555555),
+                      color: const PdfColor.fromInt(0xFF555555),
                     ),
                   ),
                   pw.SizedBox(height: 5),
@@ -674,7 +673,9 @@ class InvoicePdf {
   }
 
   static String _toWords(int n) {
-    if (n == 0) return 'Zero';
+    if (n == 0) {
+      return 'Zero';
+    }
     final o = [
       '',
       'One',

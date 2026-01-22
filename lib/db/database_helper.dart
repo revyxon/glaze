@@ -1,13 +1,16 @@
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import 'package:uuid/uuid.dart';
 import 'dart:async';
-import '../models/customer.dart';
-import '../models/window.dart';
-import '../models/enquiry.dart';
+
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
+
 import '../models/activity_log.dart';
+import '../models/customer.dart';
+import '../models/enquiry.dart';
+import '../models/window.dart';
 import '../services/app_logger.dart';
 import '../services/device_id_service.dart';
+import '../utils/window_calculator.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -22,7 +25,9 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     // If already initialized, return immediately
-    if (_database != null) return _database!;
+    if (_database != null) {
+      return _database!;
+    }
 
     // If initialization is in progress, wait for it
     if (_initCompleter != null) {
@@ -318,32 +323,59 @@ class DatabaseHelper {
   Future<List<Customer>> readCustomersWithStats() async {
     final db = await instance.database;
     try {
-      final result = await db.rawQuery('''
-        SELECT 
-          c.*,
-          COALESCE(SUM(CASE WHEN w.is_deleted = 0 THEN w.quantity ELSE 0 END), 0) as window_count,
-          COALESCE(SUM(
-            CASE 
-              WHEN w.is_deleted = 0 THEN 
-                CASE 
-                  WHEN (w.type = 'LC' OR w.type = 'L-Corner') AND w.width2 IS NOT NULL THEN
-                    CASE 
-                      WHEN w.formula = 'A' THEN ((w.width + w.width2) * w.height * w.quantity) / 90903.0
-                      ELSE ((w.width * w.height) + (w.width2 * w.height)) * w.quantity / 90903.0
-                    END
-                  ELSE (w.width * w.height * w.quantity) / 90903.0
-                END
-              ELSE 0 
-            END
-          ), 0.0) as total_sqft
-        FROM customers c
-        LEFT JOIN windows w ON c.id = w.customer_id
-        WHERE c.is_deleted = 0
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
+      // 1. Fetch raw customers
+      final customersData = await db.query(
+        'customers',
+        where: 'is_deleted = 0',
+        orderBy: 'created_at DESC',
+      );
+
+      // 2. Fetch ALL active windows (optimized to only select needed fields)
+      final windowsData = await db.rawQuery('''
+        SELECT customer_id, width, height, type, width2, formula, quantity 
+        FROM windows 
+        WHERE is_deleted = 0
       ''');
 
-      return result.map((json) => Customer.fromMap(json)).toList();
+      // 3. Group windows by Customer ID
+      final Map<String, List<Map<String, dynamic>>> windowsByCustomer = {};
+      for (var w in windowsData) {
+        final cid = w['customer_id'] as String?;
+        if (cid != null) {
+          windowsByCustomer.putIfAbsent(cid, () => []).add(w);
+        }
+      }
+
+      // 4. Map customers and calculate stats using SHARED Dart logic
+      return customersData.map((cMap) {
+        final cid = cMap['id'] as String;
+        final windows = windowsByCustomer[cid] ?? [];
+
+        double totalSqFt = 0;
+        int count = 0;
+
+        for (var w in windows) {
+          final qty = (w['quantity'] as num).toDouble();
+          count += (w['quantity'] as int);
+
+          // Use the single source of truth for calculation
+          totalSqFt += WindowCalculator.calculateDisplayedSqFt(
+            width: (w['width'] as num).toDouble(),
+            height: (w['height'] as num).toDouble(),
+            quantity: qty,
+            type: w['type'] as String,
+            width2: (w['width2'] as num?)?.toDouble() ?? 0.0,
+            isFormulaA: w['formula'] == 'A' || w['formula'] == null,
+          );
+        }
+
+        // Inject stats into the map before creating the object
+        final newMap = Map<String, dynamic>.from(cMap);
+        newMap['window_count'] = count;
+        newMap['total_sqft'] = totalSqFt;
+
+        return Customer.fromMap(newMap);
+      }).toList();
     } catch (e) {
       await _logger.error('DB', 'readCustomersWithStats FAILED', 'error=$e');
       return [];
@@ -354,37 +386,51 @@ class DatabaseHelper {
   Future<Customer?> readCustomerWithStats(String id) async {
     final db = await instance.database;
     try {
-      final result = await db.rawQuery(
+      // 1. Fetch the customer
+      final customerList = await db.query(
+        'customers',
+        where: 'id = ? AND is_deleted = 0',
+        whereArgs: [id],
+      );
+
+      if (customerList.isEmpty) {
+        return null;
+      }
+      final cMap = customerList.first;
+
+      // 2. Fetch specific windows for this customer
+      final windowsData = await db.rawQuery(
         '''
-        SELECT 
-          c.*,
-          COALESCE(SUM(CASE WHEN w.is_deleted = 0 THEN w.quantity ELSE 0 END), 0) as window_count,
-          COALESCE(SUM(
-            CASE 
-              WHEN w.is_deleted = 0 THEN 
-                CASE 
-                  WHEN (w.type = 'LC' OR w.type = 'L-Corner') AND w.width2 IS NOT NULL THEN
-                    CASE 
-                      WHEN w.formula = 'A' THEN ((w.width + w.width2) * w.height * w.quantity) / 90903.0
-                      ELSE ((w.width * w.height) + (w.width2 * w.height)) * w.quantity / 90903.0
-                    END
-                  ELSE (w.width * w.height * w.quantity) / 90903.0
-                END
-              ELSE 0 
-            END
-          ), 0.0) as total_sqft
-        FROM customers c
-        LEFT JOIN windows w ON c.id = w.customer_id
-        WHERE c.id = ? AND c.is_deleted = 0
-        GROUP BY c.id
+        SELECT width, height, type, width2, formula, quantity 
+        FROM windows 
+        WHERE customer_id = ? AND is_deleted = 0
       ''',
         [id],
       );
 
-      if (result.isNotEmpty) {
-        return Customer.fromMap(result.first);
+      // 3. Calculate stats
+      double totalSqFt = 0;
+      int count = 0;
+
+      for (var w in windowsData) {
+        final qty = (w['quantity'] as num).toDouble();
+        count += (w['quantity'] as int);
+
+        totalSqFt += WindowCalculator.calculateDisplayedSqFt(
+          width: (w['width'] as num).toDouble(),
+          height: (w['height'] as num).toDouble(),
+          quantity: qty,
+          type: w['type'] as String,
+          width2: (w['width2'] as num?)?.toDouble() ?? 0.0,
+          isFormulaA: w['formula'] == 'A' || w['formula'] == null,
+        );
       }
-      return null;
+
+      final newMap = Map<String, dynamic>.from(cMap);
+      newMap['window_count'] = count;
+      newMap['total_sqft'] = totalSqFt;
+
+      return Customer.fromMap(newMap);
     } catch (e) {
       await _logger.error(
         'DB',
@@ -446,7 +492,7 @@ class DatabaseHelper {
         return 0;
       }
 
-      int currentStatus = result.first['sync_status'] as int;
+      final int currentStatus = result.first['sync_status'] as int;
       await _logger.info(
         'DB',
         'Deleting customer',
@@ -607,8 +653,10 @@ class DatabaseHelper {
       whereArgs: [id],
     );
 
-    if (result.isEmpty) return 0;
-    int currentStatus = result.first['sync_status'] as int;
+    if (result.isEmpty) {
+      return 0;
+    }
+    final int currentStatus = result.first['sync_status'] as int;
 
     if (currentStatus == 1) {
       // Created but not synced -> Hard Delete
@@ -740,8 +788,10 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-    if (result.isEmpty) return 0;
-    int currentStatus = result.first['sync_status'] as int;
+    if (result.isEmpty) {
+      return 0;
+    }
+    final int currentStatus = result.first['sync_status'] as int;
 
     if (currentStatus == 1) {
       return await db.delete('windows', where: 'id = ?', whereArgs: [id]);
@@ -763,7 +813,9 @@ class DatabaseHelper {
   /// Handles both insert (new) and update (existing) operations.
   /// Preserves sync_status = 1 for newly created items that haven't been synced yet.
   Future<void> batchSaveWindows(List<Window> windows) async {
-    if (windows.isEmpty) return;
+    if (windows.isEmpty) {
+      return;
+    }
 
     final db = await instance.database;
     await db.transaction((txn) async {
@@ -811,7 +863,9 @@ class DatabaseHelper {
           int newStatus = 2;
           if (existing.isNotEmpty) {
             final currentStatus = existing.first['sync_status'] as int;
-            if (currentStatus == 1) newStatus = 1;
+            if (currentStatus == 1) {
+              newStatus = 1;
+            }
           }
           map['sync_status'] = newStatus;
 
@@ -860,10 +914,12 @@ class DatabaseHelper {
     // status=0 indicates it's synced from server
     data['sync_status'] = 0;
     // Ensure boolean fields are 0/1 ints for SQLite
-    if (data['is_deleted'] is bool)
+    if (data['is_deleted'] is bool) {
       data['is_deleted'] = data['is_deleted'] ? 1 : 0;
-    if (data['is_final_measurement'] is bool)
+    }
+    if (data['is_final_measurement'] is bool) {
       data['is_final_measurement'] = data['is_final_measurement'] ? 1 : 0;
+    }
 
     await db.insert(
       'customers',
@@ -875,10 +931,12 @@ class DatabaseHelper {
   Future<void> upsertWindowFromRemote(Map<String, dynamic> data) async {
     final db = await instance.database;
     data['sync_status'] = 0;
-    if (data['is_deleted'] is bool)
+    if (data['is_deleted'] is bool) {
       data['is_deleted'] = data['is_deleted'] ? 1 : 0;
-    if (data['is_on_hold'] is bool)
+    }
+    if (data['is_on_hold'] is bool) {
       data['is_on_hold'] = data['is_on_hold'] ? 1 : 0;
+    }
 
     await db.insert(
       'windows',
@@ -890,8 +948,9 @@ class DatabaseHelper {
   Future<void> upsertEnquiryFromRemote(Map<String, dynamic> data) async {
     final db = await instance.database;
     data['sync_status'] = 0;
-    if (data['is_deleted'] is bool)
+    if (data['is_deleted'] is bool) {
       data['is_deleted'] = data['is_deleted'] ? 1 : 0;
+    }
 
     await db.insert(
       'enquiries',
@@ -952,6 +1011,50 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> purgeCustomer(String id) async {
+    final db = await instance.database;
+    await db.delete('customers', where: 'id = ?', whereArgs: [id]);
+    await db.delete('windows', where: 'customer_id = ?', whereArgs: [id]);
+    await _logger.info('DB', 'Purged customer and their windows', 'id=$id');
+  }
+
+  Future<void> purgeWindow(String id) async {
+    final db = await instance.database;
+    await db.delete('windows', where: 'id = ?', whereArgs: [id]);
+    await _logger.info('DB', 'Purged window', 'id=$id');
+  }
+
+  Future<void> purgeEnquiry(String id) async {
+    final db = await instance.database;
+    await db.delete('enquiries', where: 'id = ?', whereArgs: [id]);
+    await _logger.info('DB', 'Purged enquiry', 'id=$id');
+  }
+
+  /// PRO: Catch-all for residual soft-deleted records
+  Future<void> purgeSyncedDeletes() async {
+    final db = await instance.database;
+    final customers = await db.delete(
+      'customers',
+      where: 'is_deleted = 1 AND sync_status = 0',
+    );
+    final windows = await db.delete(
+      'windows',
+      where: 'is_deleted = 1 AND sync_status = 0',
+    );
+    final enquiries = await db.delete(
+      'enquiries',
+      where: 'is_deleted = 1 AND sync_status = 0',
+    );
+
+    if (customers > 0 || windows > 0 || enquiries > 0) {
+      await _logger.info(
+        'DB',
+        'Manual purge completed',
+        'customers=$customers, windows=$windows, enquiries=$enquiries',
+      );
+    }
+  }
+
   // ==================== Activity Log Operations ====================
 
   Future<ActivityLog> createActivityLog(ActivityLog log) async {
@@ -978,7 +1081,9 @@ class DatabaseHelper {
   }
 
   Future<void> markActivityLogsSynced(List<String> ids) async {
-    if (ids.isEmpty) return;
+    if (ids.isEmpty) {
+      return;
+    }
 
     final db = await instance.database;
     final placeholders = List.filled(ids.length, '?').join(',');
@@ -1118,7 +1223,7 @@ class DatabaseHelper {
 
   Future<void> close() async {
     final db = await instance.database;
-    db.close();
+    await db.close();
     _database = null;
   }
 }

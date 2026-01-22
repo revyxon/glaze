@@ -1,27 +1,52 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../core/result.dart';
+import '../data/repositories/customer_repository.dart';
+import '../data/repositories/enquiry_repository.dart';
+import '../data/repositories/window_repository.dart';
 import '../db/database_helper.dart';
 import '../models/customer.dart';
-import '../models/window.dart';
 import '../models/enquiry.dart';
-import '../services/sync_service.dart';
+import '../models/window.dart';
 import '../services/app_logger.dart';
+import '../services/sync_service.dart';
 
 class AppProvider with ChangeNotifier {
+  // Repositories
+  final CustomerRepository _customerRepo = CustomerRepository();
+  final WindowRepository _windowRepo = WindowRepository();
+  final EnquiryRepository _enquiryRepo = EnquiryRepository();
+  final AppLogger _logger = AppLogger();
+
   List<Customer> _customers = [];
   List<Enquiry> _enquiries = [];
   bool _isLoading = false;
-  final AppLogger _logger = AppLogger();
 
   List<Customer> get customers => _customers;
   List<Enquiry> get enquiries => _enquiries;
   bool get isLoading => _isLoading;
 
+  // Cache for windows to enable optimistic UI
+  final Map<String, List<Window>> _windowCache = {};
+
   Future<void> loadCustomers() async {
     _isLoading = true;
     notifyListeners();
-    // Use optimized query
-    _customers = await DatabaseHelper.instance.readCustomersWithStats();
+
+    final result = await _customerRepo.getAll();
+    if (result is Success<List<Customer>>) {
+      _customers = result.data;
+    } else {
+      // Log error but keep empty list or previous list
+      await _logger.error(
+        'AppProvider',
+        'loadCustomers failed',
+        result.errorMessage,
+      );
+    }
+
     _isLoading = false;
     notifyListeners();
     // Trigger background sync to fetch latest if online
@@ -30,128 +55,200 @@ class AppProvider with ChangeNotifier {
 
   /// PRO: Smart Refresh for a single customer
   Future<void> _refreshCustomer(String id) async {
-    final updated = await DatabaseHelper.instance.readCustomerWithStats(id);
-    if (updated != null) {
+    final result = await _customerRepo.getById(id);
+    if (result is Success<Customer>) {
+      final updated = result.data;
       final index = _customers.indexWhere((c) => c.id == id);
       if (index != -1) {
         _customers[index] = updated;
-        notifyListeners();
       } else {
-        // If not found (maybe new?), insert at top
         _customers.insert(0, updated);
-        notifyListeners();
       }
+      notifyListeners();
     }
   }
 
   Future<Customer> addCustomer(Customer customer) async {
-    final createdCustomer = await DatabaseHelper.instance.createCustomer(
-      customer,
-    );
-    // Smart Refresh: Insert directly at top
-    _customers.insert(0, createdCustomer);
-    notifyListeners();
+    final result = await _customerRepo.create(customer);
 
-    unawaited(SyncService().syncData());
-    return createdCustomer;
+    if (result is Success<Customer>) {
+      final createdCustomer = result.data;
+      // Smart Refresh: Insert directly at top
+      _customers.insert(0, createdCustomer);
+      notifyListeners();
+      unawaited(SyncService().syncData());
+      return createdCustomer;
+    } else {
+      await _logger.error(
+        'AppProvider',
+        'addCustomer failed',
+        result.errorMessage,
+      );
+      throw Exception(result.errorMessage);
+    }
   }
 
   Future<void> updateCustomer(Customer customer) async {
-    await DatabaseHelper.instance.updateCustomer(customer);
-    // Smart Refresh: Reload only this customer
-    await _refreshCustomer(customer.id!);
-    unawaited(SyncService().syncData());
+    final result = await _customerRepo.update(customer);
+    if (result is Success) {
+      // Smart Refresh: Reload only this customer
+      await _refreshCustomer(customer.id!);
+      unawaited(SyncService().syncData());
+    } else {
+      throw Exception(result.errorMessage);
+    }
   }
 
   Future<void> deleteCustomer(String id) async {
-    await DatabaseHelper.instance.deleteCustomer(id);
-    // Smart Refresh: Remove locally
-    _customers.removeWhere((c) => c.id == id);
-    _windowCache.remove(id); // Clear window cache for this customer
-    notifyListeners();
-    // unawaited(SyncService().syncData());
-    // Force reload from DB to ensure UI is in sync with DB status
-    await loadCustomers();
+    await _logger.info('PROVIDER', 'deleteCustomer ENTRY', 'id=$id');
+
+    // 1. Optimistic UI update
+    final index = _customers.indexWhere((c) => c.id == id);
+    Customer? deletedItem;
+    if (index != -1) {
+      deletedItem = _customers[index];
+      _customers.removeAt(index);
+      _windowCache.remove(id);
+      notifyListeners();
+      await _logger.info(
+        'PROVIDER',
+        'Optimistic removal done',
+        'removed index=$index, name=${deletedItem.name}',
+      );
+    }
+
+    // 2. Repository call
+    final result = await _customerRepo.delete(id);
+
+    if (result is Success) {
+      // 3. Trigger background sync
+      unawaited(SyncService().syncData());
+      // 4. Reload to ensure consistency
+      await loadCustomers();
+    } else {
+      await _logger.error(
+        'PROVIDER',
+        'deleteCustomer FAILED',
+        'id=$id, error=${result.errorMessage}',
+      );
+      // Re-insert if failed
+      if (deletedItem != null) {
+        _customers.insert(index, deletedItem);
+        notifyListeners();
+      }
+      throw Exception(result.errorMessage);
+    }
   }
 
   // Enquiries
   Future<void> loadEnquiries() async {
     _isLoading = true;
     notifyListeners();
-    _enquiries = await DatabaseHelper.instance.readAllEnquiries();
+
+    final result = await _enquiryRepo.getAll();
+    if (result is Success<List<Enquiry>>) {
+      _enquiries = result.data;
+    }
+
     _isLoading = false;
     notifyListeners();
   }
 
   Future<Enquiry> addEnquiry(Enquiry enquiry) async {
-    final createdEnquiry = await DatabaseHelper.instance.createEnquiry(enquiry);
-    await loadEnquiries();
-    unawaited(SyncService().syncData());
-    return createdEnquiry;
+    final result = await _enquiryRepo.create(enquiry);
+    if (result is Success<Enquiry>) {
+      await loadEnquiries();
+      unawaited(SyncService().syncData());
+      return result.data;
+    } else {
+      throw Exception(result.errorMessage);
+    }
   }
 
   Future<void> updateEnquiry(Enquiry enquiry) async {
-    await DatabaseHelper.instance.updateEnquiry(enquiry);
-    await loadEnquiries();
-    unawaited(SyncService().syncData());
+    final result = await _enquiryRepo.update(enquiry);
+    if (result is Success) {
+      await loadEnquiries();
+      unawaited(SyncService().syncData());
+    } else {
+      throw Exception(result.errorMessage);
+    }
   }
 
   Future<void> deleteEnquiry(String id) async {
-    await DatabaseHelper.instance.deleteEnquiry(id);
-    await loadEnquiries();
-    unawaited(SyncService().syncData());
-  }
+    // 1. Optimistic UI update
+    final index = _enquiries.indexWhere((e) => e.id == id);
+    Enquiry? deletedItem;
+    if (index != -1) {
+      deletedItem = _enquiries[index];
+      _enquiries.removeAt(index);
+      notifyListeners();
+    }
 
-  // Cache for windows to enable optimistic UI
-  final Map<String, List<Window>> _windowCache = {};
+    // 2. Repository call
+    final result = await _enquiryRepo.delete(id);
+
+    if (result is Success) {
+      unawaited(SyncService().syncData());
+      await loadEnquiries();
+    } else {
+      await _logger.error(
+        'PROVIDER',
+        'deleteEnquiry failed',
+        'id=$id, error=${result.errorMessage}',
+      );
+      if (deletedItem != null) {
+        _enquiries.insert(index, deletedItem);
+        notifyListeners();
+      }
+      throw Exception(result.errorMessage);
+    }
+  }
 
   // Windows
   Future<List<Window>> getWindows(String customerId) async {
     if (_windowCache.containsKey(customerId)) {
       return _windowCache[customerId]!;
     }
-    final windows = await DatabaseHelper.instance.readWindowsByCustomer(
-      customerId,
-    );
-    _windowCache[customerId] = windows;
-    return windows;
+
+    final result = await _windowRepo.getByCustomer(customerId);
+    if (result is Success<List<Window>>) {
+      final windows = result.data;
+      _windowCache[customerId] = windows;
+      return windows;
+    } else {
+      // Return empty or throw? Original returned empty on fail in usage context usually
+      return [];
+    }
   }
 
   Future<void> addWindow(Window window) async {
-    await _logger.info(
-      'PROVIDER',
-      'addWindow called',
-      'customerId=${window.customerId}, name=${window.name}',
-    );
-
     // Optimistic Update
     if (_windowCache.containsKey(window.customerId)) {
       _windowCache[window.customerId]!.add(window);
       notifyListeners();
     }
 
-    try {
-      await DatabaseHelper.instance.createWindow(window);
-      await _logger.info(
-        'PROVIDER',
-        'Window added successfully',
-        'customerId=${window.customerId}',
-      );
-      // Refresh customers list to update stats (count/sqft)
+    final result = await _windowRepo.create(window);
+
+    if (result is Success) {
       await _refreshCustomer(window.customerId);
-    } catch (e) {
-      await _logger.error('PROVIDER', 'FAILED to add window', 'Error: $e');
-      // Revert optimistic update on failure
+      unawaited(SyncService().syncData());
+    } else {
+      await _logger.error(
+        'PROVIDER',
+        'FAILED to add window',
+        result.errorMessage,
+      );
+      // Revert
       if (_windowCache.containsKey(window.customerId)) {
         _windowCache[window.customerId]!.removeWhere(
           (w) => w.name == window.name,
         );
         notifyListeners();
       }
-      rethrow;
+      throw Exception(result.errorMessage);
     }
-
-    unawaited(SyncService().syncData());
   }
 
   Future<void> updateWindow(Window window) async {
@@ -166,75 +263,79 @@ class AppProvider with ChangeNotifier {
       }
     }
 
-    await DatabaseHelper.instance.updateWindow(window);
-    await _refreshCustomer(window.customerId); // Refresh stats
-    unawaited(SyncService().syncData());
+    final result = await _windowRepo.update(window);
+    if (result is Success) {
+      await _refreshCustomer(window.customerId);
+      unawaited(SyncService().syncData());
+    } else {
+      throw Exception(result.errorMessage);
+    }
   }
 
   Future<void> saveWindows(String customerId, List<Window> windows) async {
-    await _logger.info(
-      'PROVIDER',
-      'saveWindows (Batch) called',
-      'customerId=$customerId, count=${windows.length}',
-    );
+    final result = await _windowRepo.batchSave(windows);
 
-    try {
-      await DatabaseHelper.instance.batchSaveWindows(windows);
-
-      // Invalidate cache to ensure we get fresh IDs from DB
+    if (result is Success) {
+      // Invalidate cache
       _windowCache.remove(customerId);
-      // Re-populate cache immediately
       await getWindows(customerId);
-
-      // Re-populate cache immediately
-      await getWindows(customerId);
-
-      await _refreshCustomer(customerId); // Refresh stats
+      await _refreshCustomer(customerId);
       unawaited(SyncService().syncData());
-    } catch (e) {
-      await _logger.error('PROVIDER', 'Batch save failed', 'Error: $e');
-      rethrow;
+    } else {
+      await _logger.error('PROVIDER', 'Batch save failed', result.errorMessage);
+      throw Exception(result.errorMessage);
     }
   }
 
   Future<void> deleteWindow(String id) async {
-    // We need customerId to update cache efficiently, but we only have ID here.
-    // We can search the cache.
+    // 1. Find and update cache optimistically
     String? customerIdFound;
+    Window? deletedItem;
+    int indexFound = -1;
+
     for (var entry in _windowCache.entries) {
-      if (entry.value.any((w) => w.id == id)) {
+      final index = entry.value.indexWhere((w) => w.id == id);
+      if (index != -1) {
         customerIdFound = entry.key;
+        indexFound = index;
+        deletedItem = entry.value[index];
+        _windowCache[customerIdFound]!.removeAt(index);
+        notifyListeners();
         break;
       }
     }
 
-    if (customerIdFound != null) {
-      _windowCache[customerIdFound]!.removeWhere((w) => w.id == id);
-      notifyListeners();
-    }
+    final result = await _windowRepo.delete(id);
 
-    await DatabaseHelper.instance.deleteWindow(id);
-
-    // Refresh stats if we found the customerId
-    if (customerIdFound != null) {
-      await _refreshCustomer(customerIdFound);
+    if (result is Success) {
+      if (customerIdFound != null) {
+        await _refreshCustomer(customerIdFound);
+      } else {
+        await loadCustomers();
+      }
+      unawaited(SyncService().syncData());
     } else {
-      // Fallback if cache missed (rare)
-      await loadCustomers();
+      await _logger.error(
+        'PROVIDER',
+        'deleteWindow failed',
+        'id=$id, error=${result.errorMessage}',
+      );
+      // Rollback
+      if (customerIdFound != null && deletedItem != null && indexFound != -1) {
+        _windowCache[customerIdFound]!.insert(indexFound, deletedItem);
+        notifyListeners();
+      }
+      throw Exception(result.errorMessage);
     }
-
-    unawaited(SyncService().syncData());
   }
 
   Future<int> getWindowCount(String customerId) async {
     if (_windowCache.containsKey(customerId)) {
       return _windowCache[customerId]!.length;
     }
-    final windows = await DatabaseHelper.instance.readWindowsByCustomer(
-      customerId,
-    );
-    _windowCache[customerId] = windows;
-    return windows.length;
+    // If not in cache, fetch
+    await getWindows(customerId);
+    return _windowCache[customerId]?.length ?? 0;
   }
 
   Future<double> getTotalSqFt(String customerId) async {
@@ -242,9 +343,20 @@ class AppProvider with ChangeNotifier {
     if (_windowCache.containsKey(customerId)) {
       windows = _windowCache[customerId]!;
     } else {
-      windows = await DatabaseHelper.instance.readWindowsByCustomer(customerId);
-      _windowCache[customerId] = windows;
+      windows = await getWindows(customerId);
     }
     return windows.fold<double>(0.0, (sum, window) => sum + window.sqFt);
+  }
+
+  Future<void> repairData() async {
+    await _logger.info('PROVIDER', 'Repair Data requested');
+    // Keeping this direct call for now as it's a specific maintenance op
+    await DatabaseHelper.instance.purgeSyncedDeletes();
+
+    await SyncService().syncData();
+    await loadCustomers();
+    await loadEnquiries();
+
+    await _logger.info('PROVIDER', 'Repair Data completed');
   }
 }

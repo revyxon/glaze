@@ -1,20 +1,29 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// import 'package:fluentui_system_icons/fluentui_system_icons.dart'; // Removed as we use AppIcon
-import 'dart:ui';
+
+import '../config/app_data.dart';
 import '../models/customer.dart';
 import '../models/window.dart';
 import '../providers/app_provider.dart';
 import '../providers/settings_provider.dart';
-import '../config/app_data.dart';
-import '../utils/window_calculator.dart';
+import '../services/app_logger.dart';
 import '../ui/components/app_icon.dart';
+import '../utils/fast_page_route.dart';
+import '../utils/window_calculator.dart';
+import 'customer_detail_screen.dart';
 
 class WindowInputScreen extends StatefulWidget {
   final Customer customer;
+  final bool isNewFlow;
 
-  const WindowInputScreen({super.key, required this.customer});
+  const WindowInputScreen({
+    super.key,
+    required this.customer,
+    this.isNewFlow = false,
+  });
 
   @override
   State<WindowInputScreen> createState() => _WindowInputScreenState();
@@ -34,7 +43,7 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
-    for (var c in _windowControllers) {
+    for (final c in _windowControllers) {
       c.dispose();
     }
     super.dispose();
@@ -45,7 +54,6 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
       context,
       listen: false,
     ).getWindows(widget.customer.id!);
-    if (!mounted) return;
     setState(() {
       _windowControllers = windows
           .map((w) => WindowInputController.fromWindow(w))
@@ -55,11 +63,19 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
       }
       _isLoading = false;
     });
+
+    unawaited(
+      AppLogger().info(
+        'VIEW',
+        'Loaded ${_windowControllers.length} windows for customer ${widget.customer.name}',
+      ),
+    );
   }
 
   void _addNewWindow({bool autoFocus = true}) {
+    unawaited(AppLogger().debug('UI', 'Adding new window input row'));
     setState(() {
-      int nextNum = _windowControllers.length + 1;
+      final nextNum = _windowControllers.length + 1;
       _windowControllers.add(WindowInputController(name: 'W$nextNum'));
     });
 
@@ -89,7 +105,9 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
         listen: false,
       ).deleteWindow(controller.id!);
     }
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _windowControllers[index].dispose();
       _windowControllers.removeAt(index);
@@ -106,8 +124,8 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
   }
 
   double _calculateCardSqFt(WindowInputController c) {
-    double w = double.tryParse(c.widthController.text) ?? 0;
-    double h = double.tryParse(c.heightController.text) ?? 0;
+    final w = double.tryParse(c.widthController.text) ?? 0;
+    final h = double.tryParse(c.heightController.text) ?? 0;
     double w2 = 0;
 
     if (c.selectedType == WindowType.lCorner) {
@@ -139,7 +157,9 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
 
   int get _activeWindowCount {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    if (settings.countHoldOnTotal) return _windowControllers.length;
+    if (settings.countHoldOnTotal) {
+      return _windowControllers.length;
+    }
     return _windowControllers.where((c) => !c.isOnHold).length;
   }
 
@@ -162,7 +182,9 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
         String? customName;
         if (controller.selectedType == WindowType.custom) {
           customName = controller.customNameController.text;
-          if (customName.isEmpty) customName = 'Custom Window';
+          if (customName.isEmpty) {
+            customName = 'Custom Window';
+          }
         }
 
         windowsToSave.add(
@@ -197,7 +219,14 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
     }
 
     if (mounted) {
-      Navigator.pop(context);
+      if (widget.isNewFlow) {
+        await Navigator.pushReplacement(
+          context,
+          FastPageRoute(page: CustomerDetailScreen(customer: widget.customer)),
+        );
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -679,8 +708,26 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
 
         // Type Selection Chips
         Row(
-          children: ['3T', '2T', 'FIX', 'V', 'More'].map((typeCode) {
+          children: ['3T', '2T', 'V', 'FIX', 'More'].map((typeCode) {
+            final isMore = typeCode == 'More';
+
+            // Determine if the "More" button should show a selected type
+            final List<String> mainTypes = ['3T', '2T', 'V', 'FIX'];
             final isSelected = controller.selectedType == typeCode;
+            final isTypeFromMore = !mainTypes.contains(controller.selectedType);
+
+            String label = typeCode;
+            bool isActuallySelected = isSelected;
+
+            if (isMore) {
+              if (isTypeFromMore) {
+                label = '${controller.selectedType} ▾';
+                isActuallySelected = true;
+              } else {
+                label = 'More ▾';
+              }
+            }
+
             final unselectedBg = theme.colorScheme.surfaceContainerHighest;
             final unselectedBorder = isDark
                 ? theme.colorScheme.outlineVariant
@@ -692,7 +739,7 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: GestureDetector(
                   onTap: () {
-                    if (typeCode == 'More') {
+                    if (isMore) {
                       _showMoreTypesMenu(controller);
                     } else {
                       setState(() {
@@ -703,24 +750,27 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: isSelected
+                      color: isActuallySelected
                           ? theme.colorScheme.primary
                           : unselectedBg,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected
+                        color: isActuallySelected
                             ? theme.colorScheme.primary
                             : unselectedBorder,
                       ),
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      typeCode == 'More' ? 'More ▾' : typeCode,
+                      label,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : unselectedText,
+                        color: isActuallySelected
+                            ? Colors.white
+                            : unselectedText,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -780,7 +830,7 @@ class _WindowInputScreenState extends State<WindowInputScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     // Main types shown as chips
-    const mainTypes = ['3T', '2T', 'LC', 'FIX'];
+    const mainTypes = ['3T', '2T', 'V', 'FIX'];
 
     // Filter remaining types
     final otherTypes = AppData.windowTypes

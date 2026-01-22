@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/material.dart';
 import '../models/customer.dart';
 import '../models/window.dart';
 import '../services/print_service.dart';
@@ -16,6 +17,7 @@ class PrintBottomSheet extends StatelessWidget {
 
   Future<void> _print(BuildContext context, bool isInvoice) async {
     // Show loading
+    // ignore: unawaited_futures
     showDialog(
       context: context,
       barrierDismissible: false,

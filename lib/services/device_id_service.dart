@@ -24,11 +24,13 @@ class DeviceIdService {
   /// 3. Generates STRICT ID based on Platform (Android ID / iOS Vendor).
   /// 4. Falls back to UUID v4.
   Future<String> getDeviceId() async {
-    if (_deviceId != null) return _deviceId!;
+    if (_deviceId != null) {
+      return _deviceId!;
+    }
 
     // 1. Check Prefs (Legacy/Cache)
     final prefs = await SharedPreferences.getInstance();
-    String? storedId = prefs.getString(_prefKey);
+    final String? storedId = prefs.getString(_prefKey);
 
     // 2. Try to get strict hardware ID
     String? strictId;
@@ -42,7 +44,7 @@ class DeviceIdService {
         strictId = iosInfo.identifierForVendor;
       }
     } catch (e) {
-      AppLogger().error('DEVICE_ID', 'Failed to get hardware ID: $e');
+      await AppLogger().error('DEVICE_ID', 'Failed to get hardware ID: $e');
     }
 
     // 3. Logic:

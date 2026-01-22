@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../services/restore_service.dart';
-import '../design_system.dart';
-import '../../utils/haptics.dart';
+
+import 'package:glaze/services/restore_service.dart';
+import 'package:glaze/ui/design_system.dart';
+import 'package:glaze/utils/haptics.dart';
 
 class RestoreDialog extends StatefulWidget {
   const RestoreDialog({super.key});
@@ -40,7 +41,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
 
     if (mounted) {
       if (results.success) {
-        Haptics.success();
+        await Haptics.success();
         setState(() {
           _isComplete = true;
           _results = results;
@@ -48,7 +49,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
           _statusMessage = 'Restore Complete!';
         });
       } else {
-        Haptics.error();
+        await Haptics.error();
         setState(() {
           _isComplete = true; // Complete with error
           _error = results.error;

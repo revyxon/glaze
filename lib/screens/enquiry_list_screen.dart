@@ -1,18 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../providers/app_provider.dart';
-import '../widgets/enquiry_card.dart';
-import 'enquiry_detail_screen.dart';
+import '../providers/settings_provider.dart';
+import '../services/sync_service.dart';
 import '../ui/components/app_header.dart';
 import '../ui/components/app_icon.dart';
 import '../ui/components/app_search_bar.dart';
 import '../ui/dialogs/restore_dialog.dart';
 import '../utils/fast_page_route.dart';
-import '../services/sync_service.dart';
 import '../utils/haptics.dart';
+import '../widgets/enquiry_card.dart';
 import '../widgets/premium_toast.dart';
-import '../providers/settings_provider.dart';
+import 'enquiry_detail_screen.dart';
 
 class EnquiryListScreen extends StatefulWidget {
   const EnquiryListScreen({super.key});
@@ -34,9 +34,11 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     super.initState();
     // Manual logScreenView removed as handled by LoggingNavigatorObserver
 
-    Future.microtask(
-      () => Provider.of<AppProvider>(context, listen: false).loadEnquiries(),
-    );
+    Future.microtask(() {
+      if (mounted) {
+        Provider.of<AppProvider>(context, listen: false).loadEnquiries();
+      }
+    });
   }
 
   @override
@@ -46,9 +48,11 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
   }
 
   Future<void> _triggerManualSync() async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      return;
+    }
     setState(() => _isSyncing = true);
-    Haptics.medium();
+    await Haptics.medium();
 
     try {
       final error = await SyncService().syncData();
@@ -64,7 +68,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
         ToastService.show(context, 'Sync failed: $e', isError: true);
       }
     } finally {
-      if (mounted) setState(() => _isSyncing = false);
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
     }
   }
 
@@ -86,10 +92,14 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     false) ||
                 (e.phone?.contains(_searchQuery) ?? false);
 
-            if (!matchesSearch) return false;
+            if (!matchesSearch) {
+              return false;
+            }
 
             // Status filter
-            if (_activeFilter == 'all') return true;
+            if (_activeFilter == 'all') {
+              return true;
+            }
             return e.status.toLowerCase() == _activeFilter;
           }).toList();
 
@@ -143,13 +153,16 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                       AppIconType.theme,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
-                    onPressed: () {
-                      Haptics.light();
+                    onPressed: () async {
                       final settings = Provider.of<SettingsProvider>(
                         context,
                         listen: false,
                       );
-                      settings.setThemeMode(
+                      await Haptics.light();
+                      if (!mounted) {
+                        return;
+                      }
+                      await settings.setThemeMode(
                         theme.brightness == Brightness.dark
                             ? ThemeMode.light
                             : ThemeMode.dark,

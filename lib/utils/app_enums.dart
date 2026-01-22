@@ -1,7 +1,3 @@
-/// App Enums
-///
-/// Central location for all app-wide enums to avoid circular dependencies.
-
 /// Icon Pack Types - for switching between Material, Fluent, and Cupertino icons
 enum IconPack {
   material,
@@ -14,8 +10,6 @@ enum IconPack {
   heroicons,
   eva,
   boxicons,
-  huge,
-  fontAwesome,
 }
 
 /// Font families available in the app
@@ -48,7 +42,9 @@ enum AppIconType {
   share,
   print,
   sync,
+  refresh,
   search,
+  copy,
   close,
   back,
   arrowRight,
@@ -63,6 +59,9 @@ enum AppIconType {
   customer,
   window,
   measurement,
+  measure,
+  surface,
+  glass,
   calculator,
   calendar,
   location,

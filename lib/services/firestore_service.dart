@@ -22,15 +22,17 @@ class FirestoreService {
 
     // Firestore batch limit is 500
     const batchSize = 500;
-    for (var i = 0; i < customers.length; i += batchSize) {
+    for (int i = 0; i < customers.length; i += batchSize) {
       final batch = _firestore.batch();
       final chunk = customers.sublist(
         i,
         i + batchSize > customers.length ? customers.length : i + batchSize,
       );
 
-      for (var customer in chunk) {
-        if (customer['id'] == null) continue;
+      for (final customer in chunk) {
+        if (customer['id'] == null) {
+          continue;
+        }
 
         final cleaned = Map<String, dynamic>.from(customer);
         cleaned['deviceId'] = deviceId;
@@ -68,15 +70,17 @@ class FirestoreService {
 
     // Firestore batch limit is 500
     const batchSize = 500;
-    for (var i = 0; i < windows.length; i += batchSize) {
+    for (int i = 0; i < windows.length; i += batchSize) {
       final batch = _firestore.batch();
       final chunk = windows.sublist(
         i,
         i + batchSize > windows.length ? windows.length : i + batchSize,
       );
 
-      for (var window in chunk) {
-        if (window['id'] == null) continue;
+      for (final window in chunk) {
+        if (window['id'] == null) {
+          continue;
+        }
 
         final cleaned = Map<String, dynamic>.from(window);
         cleaned['deviceId'] = deviceId;
@@ -114,15 +118,17 @@ class FirestoreService {
 
     // Firestore batch limit is 500
     const batchSize = 500;
-    for (var i = 0; i < enquiries.length; i += batchSize) {
+    for (int i = 0; i < enquiries.length; i += batchSize) {
       final batch = _firestore.batch();
       final chunk = enquiries.sublist(
         i,
         i + batchSize > enquiries.length ? enquiries.length : i + batchSize,
       );
 
-      for (var enquiry in chunk) {
-        if (enquiry['id'] == null) continue;
+      for (final enquiry in chunk) {
+        if (enquiry['id'] == null) {
+          continue;
+        }
 
         final cleaned = Map<String, dynamic>.from(enquiry);
         cleaned['deviceId'] = deviceId;
@@ -154,23 +160,39 @@ class FirestoreService {
     }
   }
 
+  Future<void> deleteCustomer(String id) async {
+    await _firestore.collection('customers').doc(id).delete();
+  }
+
+  Future<void> deleteWindow(String id) async {
+    await _firestore.collection('windows').doc(id).delete();
+  }
+
+  Future<void> deleteEnquiry(String id) async {
+    await _firestore.collection('enquiries').doc(id).delete();
+  }
+
   // ACTIVITY LOGS
   Future<void> upsertActivityLogs(List<Map<String, dynamic>> logs) async {
-    if (logs.isEmpty) return;
+    if (logs.isEmpty) {
+      return;
+    }
 
     final deviceId = await _getDeviceId();
 
     // Firestore batch limit is 500
     const batchSize = 500;
-    for (var i = 0; i < logs.length; i += batchSize) {
+    for (int i = 0; i < logs.length; i += batchSize) {
       final batch = _firestore.batch();
       final chunk = logs.sublist(
         i,
         i + batchSize > logs.length ? logs.length : i + batchSize,
       );
 
-      for (var log in chunk) {
-        if (log['id'] == null) continue;
+      for (final log in chunk) {
+        if (log['id'] == null) {
+          continue;
+        }
 
         final cleaned = Map<String, dynamic>.from(log);
         cleaned['deviceId'] = deviceId;
@@ -264,7 +286,9 @@ class FirestoreService {
     try {
       final deviceId = await _getDeviceId();
       final updates = <String, dynamic>{};
-      if (skipCount != null) updates['updateSkipCount'] = skipCount;
+      if (skipCount != null) {
+        updates['updateSkipCount'] = skipCount;
+      }
       if (lastSkippedVersion != null) {
         updates['lastSkippedVersion'] = lastSkippedVersion;
       }
@@ -288,7 +312,7 @@ class FirestoreService {
 
     if (windows.docs.isNotEmpty) {
       final batch = _firestore.batch();
-      for (var doc in windows.docs) {
+      for (final doc in windows.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();
@@ -302,7 +326,7 @@ class FirestoreService {
 
     if (customers.docs.isNotEmpty) {
       final batch = _firestore.batch();
-      for (var doc in customers.docs) {
+      for (final doc in customers.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();
@@ -316,7 +340,7 @@ class FirestoreService {
 
     if (activityLogs.docs.isNotEmpty) {
       final batch = _firestore.batch();
-      for (var doc in activityLogs.docs) {
+      for (final doc in activityLogs.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();
@@ -330,7 +354,7 @@ class FirestoreService {
 
     if (enquiries.docs.isNotEmpty) {
       final batch = _firestore.batch();
-      for (var doc in enquiries.docs) {
+      for (final doc in enquiries.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();

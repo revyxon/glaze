@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../ui/design_system.dart';
 import '../../ui/components/app_icon.dart';
+import '../../ui/design_system.dart';
 import 'app_card.dart';
 
 /// Grouped Settings Section (M3 Outlined Style)

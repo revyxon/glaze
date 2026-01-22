@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'app_icon.dart';
 import '../design_system.dart';
+import 'app_icon.dart';
 
 class AppHeader extends StatelessWidget {
   final String title;

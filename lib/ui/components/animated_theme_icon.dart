@@ -32,9 +32,9 @@ class AnimatedThemeIcon extends StatelessWidget {
                 size: 24,
                 color: Theme.of(context).colorScheme.primary,
               )
-            : AppIcon(
+            : const AppIcon(
                 AppIconType.sun,
-                key: const ValueKey('sun'),
+                key: ValueKey('sun'),
                 size: 24,
                 color: Colors.orange,
               ),

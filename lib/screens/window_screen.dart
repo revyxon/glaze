@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/customer.dart';
 import '../models/window.dart';
 import '../providers/app_provider.dart';
-import '../utils/app_colors.dart';
 import '../ui/components/app_icon.dart';
+import '../utils/app_colors.dart';
 import '../widgets/glass_container.dart';
 
 class WindowScreen extends StatefulWidget {
@@ -36,8 +37,8 @@ class _WindowScreenState extends State<WindowScreen> {
           window?.name ??
           'W${(Provider.of<AppProvider>(context, listen: false).customers.length + 1)}',
     ); // Rough logic for name
-    String selectedType = window?.type ?? '3T';
-    int quantity = window?.quantity ?? 1;
+    final String selectedType = window?.type ?? '3T';
+    final int quantity = window?.quantity ?? 1;
 
     showModalBottomSheet(
       context: context,
@@ -156,7 +157,9 @@ class _WindowScreenState extends State<WindowScreen> {
                         listen: false,
                       ).updateWindow(newWindow);
                     }
-                    Navigator.pop(context);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
                     setState(() {}); // Refresh list
                   }
                 },
@@ -340,6 +343,45 @@ class _WindowScreenState extends State<WindowScreen> {
                             ],
                           ),
                         ],
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const AppIcon(
+                          AppIconType.delete,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Delete Window?'),
+                              content: Text(
+                                'Are you sure you want to remove ${w.name}?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text(
+                                    'Delete',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true && context.mounted) {
+                            await Provider.of<AppProvider>(
+                              context,
+                              listen: false,
+                            ).deleteWindow(w.id!);
+                          }
+                        },
                       ),
                     ],
                   ),

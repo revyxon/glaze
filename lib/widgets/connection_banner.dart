@@ -15,7 +15,9 @@ class ConnectionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isOnline && !isSyncing) return const SizedBox.shrink();
+    if (isOnline && !isSyncing) {
+      return const SizedBox.shrink();
+    }
 
     final theme = Theme.of(context);
     final color = isOnline ? theme.colorScheme.primary : Colors.orange;

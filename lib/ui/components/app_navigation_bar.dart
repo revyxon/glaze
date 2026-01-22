@@ -32,11 +32,11 @@ class AppNavigationBar extends StatelessWidget {
       destinations: [
         NavigationDestination(
           icon: AppIcon(
-            AppIconType.home,
+            AppIconType.measure,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           selectedIcon: AppIcon(
-            AppIconType.home,
+            AppIconType.measure,
             color: theme.colorScheme.primary,
           ),
           label: 'Measure',

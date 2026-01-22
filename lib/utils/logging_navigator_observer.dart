@@ -5,7 +5,7 @@ class LoggingNavigatorObserver extends RouteObserver<PageRoute<dynamic>> {
   final LogService _logService = LogService();
 
   void _logScreenView(PageRoute<dynamic> route) {
-    var screenName = route.settings.name;
+    final screenName = route.settings.name;
 
     // If name is null (e.g. anonymous route), try to use the widget type
     if (screenName == null) {

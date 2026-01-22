@@ -1,23 +1,24 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_data.dart';
 import '../models/customer.dart';
 import '../models/window.dart';
 import '../providers/app_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/app_logger.dart';
 import '../ui/components/app_card.dart';
 import '../ui/components/app_icon.dart';
-import '../utils/currency_formatter.dart';
 import '../ui/design_system.dart';
-import 'window_input_screen.dart';
-import 'add_customer_screen.dart';
-import '../utils/window_calculator.dart';
-import '../widgets/share_bottom_sheet.dart';
-import '../widgets/print_bottom_sheet.dart';
-import '../utils/haptics.dart';
-import '../config/app_data.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/fast_page_route.dart';
+import '../utils/haptics.dart';
+import '../utils/window_calculator.dart';
+import '../widgets/print_bottom_sheet.dart';
+import '../widgets/share_bottom_sheet.dart';
 import '../widgets/skeleton_loader.dart';
-import '../services/permission_helper.dart';
+import 'add_customer_screen.dart';
+import 'window_input_screen.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final Customer customer;
@@ -35,6 +36,39 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   void initState() {
     super.initState();
     _customer = widget.customer;
+    unawaited(
+      AppLogger().info(
+        'VIEW',
+        'Viewing details for customer: ${_customer.name}',
+      ),
+    );
+  }
+
+  Map<String, double> _calculatePageStats(
+    List<Window> windows,
+    double rate,
+    bool countHold,
+  ) {
+    double totalSqFt = 0;
+    double totalRate = 0;
+    double totalQty = 0;
+
+    for (final w in windows) {
+      if (!w.isOnHold || countHold) {
+        final sqFt = WindowCalculator.calculateDisplayedSqFt(
+          width: w.width,
+          height: w.height,
+          quantity: w.quantity.toDouble(),
+          width2: w.width2 ?? 0.0,
+          type: w.type,
+          isFormulaA: w.formula == 'A' || w.formula == null,
+        );
+        totalSqFt += sqFt;
+        totalRate += sqFt * rate;
+        totalQty += w.quantity;
+      }
+    }
+    return {'sqft': totalSqFt, 'price': totalRate, 'qty': totalQty};
   }
 
   @override
@@ -57,18 +91,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               final windows = snapshot.data ?? [];
               final settings = Provider.of<SettingsProvider>(context);
 
-              double totalSqFt = 0;
-              double totalRate = 0;
-              int totalQty = 0;
-
-              for (final w in windows) {
-                if (!w.isOnHold || settings.countHoldOnTotal) {
-                  final sqFt = (w.width * w.height / 90903.0) * w.quantity;
-                  totalSqFt += sqFt;
-                  totalRate += sqFt * (_customer.ratePerSqft ?? 0);
-                  totalQty += w.quantity;
-                }
-              }
+              // Improved: Calculate stats in efficient block
+              final stats = _calculatePageStats(
+                windows,
+                _customer.ratePerSqft ?? 0,
+                settings.countHoldOnTotal,
+              );
+              final totalSqFt = stats['sqft']!;
+              final totalRate = stats['price']!;
+              final totalQty = stats['qty']!.toInt();
 
               return CustomScrollView(
                 slivers: [
@@ -186,7 +217,12 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          if (settings.hapticFeedback) Haptics.medium();
+          if (settings.hapticFeedback) {
+            Haptics.medium();
+          }
+          unawaited(
+            AppLogger().debug('UI', 'Navigating to add new window screen'),
+          );
           Navigator.push(
             context,
             FastPageRoute(page: WindowInputScreen(customer: _customer)),
@@ -273,64 +309,65 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             ],
           ),
 
-          Divider(
-            height: 28,
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.1),
-          ),
-
           // Rate & Total
-          Row(
-            children: [
-              AppIcon(
-                AppIconType.calculator,
-                size: 22,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Rate',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.5,
+          if ((_customer.ratePerSqft ?? 0) > 0) ...[
+            Divider(
+              height: 28,
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.1),
+            ),
+            Row(
+              children: [
+                AppIcon(
+                  AppIconType.calculator,
+                  size: 22,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rate',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      '${CurrencyFormatter.format(_customer.ratePerSqft ?? 0)}/sqft',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        '${CurrencyFormatter.format(_customer.ratePerSqft ?? 0)}/sqft',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  ),
+                  child: Text(
+                    'Total: ${CurrencyFormatter.format(totalRate)}',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-                child: Text(
-                  'Total: ${CurrencyFormatter.format(totalRate)}',
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -348,14 +385,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           color: const Color(0xFF10B981).withValues(alpha: 0.2),
         ),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const AppIcon(AppIconType.check, size: 22, color: Color(0xFF10B981)),
-          const SizedBox(width: AppSpacing.md),
+          AppIcon(AppIconType.check, size: 22, color: Color(0xFF10B981)),
+          SizedBox(width: AppSpacing.md),
           Text(
             'Final Measurement',
             style: TextStyle(
-              color: const Color(0xFF047857),
+              color: Color(0xFF047857),
               fontWeight: FontWeight.w600,
               fontSize: 15,
             ),
@@ -395,8 +432,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     int index,
   ) {
     final rate = _customer.ratePerSqft ?? 0;
-    final displayedSqFt =
-        (window.width * window.height / 90903.0) * window.quantity;
+    final displayedSqFt = WindowCalculator.calculateDisplayedSqFt(
+      width: window.width,
+      height: window.height,
+      quantity: window.quantity.toDouble(),
+      width2: window.width2 ?? 0.0,
+      type: window.type,
+      isFormulaA: window.formula == 'A' || window.formula == null,
+    );
     final cost = displayedSqFt * rate;
     final isHold = window.isOnHold;
 
@@ -557,13 +600,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  CurrencyFormatter.format(cost),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                if (rate > 0) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    CurrencyFormatter.format(cost),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -574,31 +619,34 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
 
   void _showShare(List<Window> windows) {
     Haptics.light();
+    unawaited(AppLogger().debug('UI', 'Showing share bottom sheet'));
     showShareBottomSheet(context, _customer, windows);
   }
 
   void _showPrint(List<Window> windows) {
     Haptics.light();
+    unawaited(AppLogger().debug('UI', 'Showing print bottom sheet'));
     showPrintBottomSheet(context, _customer, windows);
   }
 
   void _editWindows() {
     Haptics.light();
-    if (!PermissionHelper().checkAndShowDialog(
-      context,
-      'edit_window',
-      'Edit Windows',
-    ))
-      return;
+    Haptics.light();
+    unawaited(AppLogger().debug('UI', 'Navigating to edit windows screen'));
     Navigator.push(
       context,
       FastPageRoute(page: WindowInputScreen(customer: _customer)),
-    ).then((_) => setState(() {}));
+    ).then((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   void _showOptionsMenu(BuildContext context) {
     final theme = Theme.of(context);
     Haptics.selection();
+    unawaited(AppLogger().debug('UI', 'Showing options menu for customer'));
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -649,33 +697,55 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     );
   }
 
-  Future<void> _editCustomer(BuildContext context) async {
-    Navigator.pop(context);
-    if (!PermissionHelper().checkAndShowDialog(
-      context,
-      'edit_customer',
-      'Edit Customer',
-    ))
-      return;
-    final updated = await Navigator.push<Customer>(
-      context,
-      FastPageRoute(page: AddCustomerScreen(customerToEdit: _customer)),
-    );
-    if (updated != null && mounted) setState(() => _customer = updated);
-  }
-
-  Future<void> _deleteCustomer(BuildContext context) async {
-    // Only pop the menu
-    Navigator.pop(context);
-
-    if (!PermissionHelper().checkAndShowDialog(
-      context,
-      'delete_customer',
-      'Delete Customer',
-    )) {
+  Future<void> _editCustomer(BuildContext sheetContext) async {
+    unawaited(AppLogger().debug('UI', 'Navigating to edit customer screen'));
+    if (Navigator.canPop(sheetContext)) {
+      Navigator.pop(sheetContext); // Close the bottom sheet
+    }
+    if (!mounted) {
       return;
     }
 
+    final updated = await Navigator.push<Customer>(
+      context, // Use screen context
+      FastPageRoute(page: AddCustomerScreen(customerToEdit: _customer)),
+    );
+    if (updated != null && mounted) {
+      setState(() => _customer = updated);
+      unawaited(
+        AppLogger().info(
+          'EDIT',
+          'Customer details updated for ${_customer.name}',
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteCustomer(BuildContext menuContext) async {
+    final logger = AppLogger();
+    await logger.info(
+      'DELETE',
+      'Starting delete for ${_customer.name}',
+      'id=${_customer.id}',
+    );
+
+    if (menuContext.mounted && Navigator.canPop(menuContext)) {
+      Navigator.pop(menuContext);
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    // Use this.context for the dialog to ensure it is rooted in the screen, not the popped menu
+    if (!mounted) {
+      return;
+    }
+
+    await logger.info('DELETE', 'Showing confirmation dialog');
+
+    if (!mounted) {
+      return;
+    }
     final confirmed =
         await showDialog<bool>(
           context: context,
@@ -699,34 +769,99 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         ) ??
         false;
 
+    await logger.info(
+      'DELETE',
+      'User response',
+      'confirmed=$confirmed, mounted=$mounted',
+    );
+
     if (confirmed && mounted) {
       try {
+        // Validate customer ID first
+        final customerId = _customer.id;
+        if (customerId == null) {
+          await logger.error(
+            'DELETE',
+            'Customer ID is NULL!',
+            'customer=${_customer.name}',
+          );
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error: Customer ID is missing'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Capture messenger before navigation to ensure toast works
+        final messenger = ScaffoldMessenger.of(context);
+        final customerName = _customer.name;
+
+        await logger.info(
+          'DELETE',
+          'Calling AppProvider.deleteCustomer',
+          'id=$customerId, name=$customerName',
+        );
+
+        if (!mounted) {
+          return;
+        }
         await Provider.of<AppProvider>(
           context,
           listen: false,
-        ).deleteCustomer(_customer.id!);
+        ).deleteCustomer(customerId);
 
+        await logger.info('DELETE', 'Provider deleteCustomer SUCCESS');
+
+        // Navigate first
+        if (mounted && context.mounted) {
+          await logger.info('DELETE', 'Navigating to first route');
+          if (!mounted) {
+            return;
+          }
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+
+        // Then show toast using the captured messenger
+        await logger.info(
+          'DELETE',
+          'DELETE FLOW COMPLETE ✅',
+          'customer=$customerName',
+        );
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Customer $customerName has been deleted'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } catch (e, stack) {
+        await logger.error(
+          'DELETE',
+          'CRITICAL ERROR in delete flow',
+          'error=$e\nstack=$stack',
+        );
         if (mounted) {
-          Navigator.pop(context); // Pop screen to go home
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Customer deleted successfully'),
+            SnackBar(
+              content: Text('Delete failed: $e'),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to delete: $e'),
-              backgroundColor: Colors.red[900],
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
       }
+    } else {
+      await logger.info(
+        'DELETE',
+        'Cancelled by user or not mounted',
+        'confirmed=$confirmed, mounted=$mounted',
+      );
     }
   }
 

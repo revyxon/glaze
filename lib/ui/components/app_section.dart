@@ -44,7 +44,7 @@ class AppSection extends StatelessWidget {
             ),
           ),
         if (showDivider && title != null)
-          Divider(height: 1, indent: Spacing.lg, endIndent: Spacing.lg),
+          const Divider(height: 1, indent: Spacing.lg, endIndent: Spacing.lg),
         ...children,
       ],
     );

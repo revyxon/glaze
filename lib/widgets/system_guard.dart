@@ -1,14 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../services/license_service.dart';
-import '../services/update_service.dart';
-import '../services/app_logger.dart';
-import '../services/log_service.dart';
 
 import '../screens/locked_screen.dart';
-
 import '../screens/offline_lock_screen.dart';
 import '../screens/update_screen.dart';
+import '../services/app_logger.dart';
+import '../services/license_service.dart';
+import '../services/log_service.dart';
+import '../services/update_service.dart';
 import '../utils/globals.dart';
 
 /// SystemGuard V2: Invisible License Check with 7-Day Grace Period
@@ -84,7 +84,9 @@ class _SystemGuardState extends State<SystemGuard> with WidgetsBindingObserver {
   }
 
   void _onLicenseChanged(LicenseStatus status) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _status = status;
@@ -95,15 +97,21 @@ class _SystemGuardState extends State<SystemGuard> with WidgetsBindingObserver {
   }
 
   Future<void> _runInvisibleCheck() async {
-    AppLogger().info('GUARD', 'Running invisible validation (15s triggered)');
+    await AppLogger().info(
+      'GUARD',
+      'Running invisible validation (15s triggered)',
+    );
 
     // Check Update first (optional, silent)
     // Check Update first (optional, silent)
     try {
       final updateResult = await UpdateService().checkForUpdate();
       if (updateResult.hasUpdate && mounted) {
-        AppLogger().info('GUARD', 'Update found: ${updateResult.version}');
-        GlobalParams.navigatorKey.currentState?.push(
+        await AppLogger().info(
+          'GUARD',
+          'Update found: ${updateResult.version}',
+        );
+        await GlobalParams.navigatorKey.currentState?.push(
           MaterialPageRoute(
             builder: (ctx) => UpdateScreen(
               updateResult: updateResult,
@@ -118,14 +126,16 @@ class _SystemGuardState extends State<SystemGuard> with WidgetsBindingObserver {
         );
       }
     } catch (e) {
-      AppLogger().error('GUARD', 'Update check failed: $e');
+      await AppLogger().error('GUARD', 'Update check failed: $e');
     }
 
     // Validate License
     await LicenseService().validate();
 
     // After validation, check if we need to lock due to GRACE PERIOD expiration
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     final service = LicenseService();
 

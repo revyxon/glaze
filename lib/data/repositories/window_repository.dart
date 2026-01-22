@@ -1,7 +1,7 @@
+import 'package:glaze/core/result.dart';
 import 'package:glaze/db/database_helper.dart';
 import 'package:glaze/models/window.dart';
 import 'package:glaze/services/app_logger.dart';
-import 'package:glaze/core/result.dart';
 
 /// Repository for Window data operations.
 /// Provides a clean abstraction over database operations.
@@ -34,7 +34,7 @@ class WindowRepository {
     try {
       final window = await _db.readWindow(id);
       if (window == null) {
-        return Failure('Window not found');
+        return const Failure('Window not found');
       }
       return Success(window);
     } catch (e, stack) {

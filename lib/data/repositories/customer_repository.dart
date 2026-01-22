@@ -1,7 +1,7 @@
+import 'package:glaze/core/result.dart';
 import 'package:glaze/db/database_helper.dart';
 import 'package:glaze/models/customer.dart';
 import 'package:glaze/services/app_logger.dart';
-import 'package:glaze/core/result.dart';
 
 /// Repository for Customer data operations.
 /// Provides a clean abstraction over database operations.
@@ -30,7 +30,7 @@ class CustomerRepository {
     try {
       final customer = await _db.readCustomerWithStats(id);
       if (customer == null) {
-        return Failure('Customer not found');
+        return const Failure('Customer not found');
       }
       return Success(customer);
     } catch (e, stack) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../tokens/spacing.dart';
 import '../tokens/durations.dart';
+import '../tokens/spacing.dart';
 
 /// Primary action button with loading state.
 ///

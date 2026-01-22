@@ -1,7 +1,7 @@
+import 'package:glaze/core/result.dart';
 import 'package:glaze/db/database_helper.dart';
 import 'package:glaze/models/enquiry.dart';
 import 'package:glaze/services/app_logger.dart';
-import 'package:glaze/core/result.dart';
 
 /// Repository for Enquiry data operations.
 /// Provides a clean abstraction over database operations.
@@ -30,7 +30,7 @@ class EnquiryRepository {
     try {
       final enquiry = await _db.readEnquiry(id);
       if (enquiry == null) {
-        return Failure('Enquiry not found');
+        return const Failure('Enquiry not found');
       }
       return Success(enquiry);
     } catch (e, stack) {

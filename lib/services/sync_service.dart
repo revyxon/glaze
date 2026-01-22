@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../db/database_helper.dart';
-import 'firestore_service.dart';
 import 'app_logger.dart';
+import 'firestore_service.dart';
 
 class SyncService {
   static final SyncService _instance = SyncService._internal();
@@ -56,12 +56,14 @@ class SyncService {
     });
 
     // Initial sync
-    syncData();
+    await syncData();
   }
 
   /// Sync data to Firebase - Push only (Local -> Cloud)
   Future<String?> syncData() async {
-    if (_isSyncing) return null;
+    if (_isSyncing) {
+      return null;
+    }
 
     // Check connectivity explicitly
     final connectivityResult = await Connectivity().checkConnectivity();
@@ -79,11 +81,11 @@ class SyncService {
       // 1. Devices (Registration update)
       await FirestoreService().updateLastActive();
 
-      // 2. Customers
-      await _syncCustomers();
-
-      // 3. Windows
+      // 2. Windows (MUST SYNC BEFORE CUSTOMERS to avoid orphans)
       await _syncWindows();
+
+      // 3. Customers
+      await _syncCustomers();
 
       // 4. Enquiries
       await _syncEnquiries();
@@ -113,8 +115,15 @@ class SyncService {
       final data = dirty.map((e) => e.toMap()).toList();
       await firestore.upsertCustomers(data);
 
-      for (var item in dirty) {
-        if (item.id != null) await db.markCustomerSynced(item.id!);
+      for (final item in dirty) {
+        if (item.id != null) {
+          if (item.isDeleted) {
+            await firestore.deleteCustomer(item.id!);
+            await db.purgeCustomer(item.id!);
+          } else {
+            await db.markCustomerSynced(item.id!);
+          }
+        }
       }
     }
   }
@@ -129,8 +138,15 @@ class SyncService {
       final data = dirty.map((e) => e.toMap()).toList();
       await firestore.upsertWindows(data);
 
-      for (var item in dirty) {
-        if (item.id != null) await db.markWindowSynced(item.id!);
+      for (final item in dirty) {
+        if (item.id != null) {
+          if (item.isDeleted) {
+            await firestore.deleteWindow(item.id!);
+            await db.purgeWindow(item.id!);
+          } else {
+            await db.markWindowSynced(item.id!);
+          }
+        }
       }
     }
   }
@@ -145,8 +161,15 @@ class SyncService {
       final data = dirty.map((e) => e.toMap()).toList();
       await firestore.upsertEnquiries(data);
 
-      for (var item in dirty) {
-        if (item.id != null) await db.markEnquirySynced(item.id!);
+      for (final item in dirty) {
+        if (item.id != null) {
+          if (item.isDeleted) {
+            await firestore.deleteEnquiry(item.id!);
+            await db.purgeEnquiry(item.id!);
+          } else {
+            await db.markEnquirySynced(item.id!);
+          }
+        }
       }
     }
   }

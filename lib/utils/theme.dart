@@ -8,7 +8,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         surface: AppColors.cardSurface,
         onSurface: AppColors.textPrimary,
@@ -51,7 +51,7 @@ class AppTheme {
           horizontal: 16,
           vertical: 16,
         ),
-        hintStyle: TextStyle(color: AppColors.textSecondary),
+        hintStyle: const TextStyle(color: AppColors.textSecondary),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -97,7 +97,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: darkBackground,
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.dark(
         primary: primaryColor,
         surface: darkSurface,
         onSurface: darkTextPrimary,
@@ -173,7 +173,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: Color(0xFF2C2C2E), // Lighter than background
+        backgroundColor: const Color(0xFF2C2C2E), // Lighter than background
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         titleTextStyle: const TextStyle(
           color: darkTextPrimary,

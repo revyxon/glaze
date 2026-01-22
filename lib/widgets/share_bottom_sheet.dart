@@ -1,18 +1,17 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:ui';
 import '../models/customer.dart';
 import '../models/window.dart';
-import '../services/print_service.dart';
-import 'package:intl/intl.dart';
-
-import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/print_service.dart';
 
 class ShareBottomSheet extends StatelessWidget {
   final Customer customer;
@@ -98,15 +97,23 @@ class ShareBottomSheet extends StatelessWidget {
       }
 
       // Truncate insane lengths to keep it readable, but allow reasonable length
-      if (type.length > 15) type = type.substring(0, 15);
+      if (type.length > 15) {
+        type = type.substring(0, 15);
+      }
 
       // Area (Unit * Qty)
       final lineSqFt = window.sqFt * window.quantity;
       final area = '${lineSqFt.toStringAsFixed(2)} Sq.Ft';
 
-      if (label.length > maxLabel) maxLabel = label.length;
-      if (dimen.length > maxDimen) maxDimen = dimen.length;
-      if (type.length > maxType) maxType = type.length;
+      if (label.length > maxLabel) {
+        maxLabel = label.length;
+      }
+      if (dimen.length > maxDimen) {
+        maxDimen = dimen.length;
+      }
+      if (type.length > maxType) {
+        maxType = type.length;
+      }
 
       rows.add({'label': label, 'dimen': dimen, 'type': type, 'area': area});
 
@@ -162,7 +169,9 @@ class ShareBottomSheet extends StatelessWidget {
     } else {
       await SharePlus.instance.share(ShareParams(text: text));
     }
-    if (context.mounted) Navigator.pop(context);
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _sharePdf(BuildContext context, bool isInvoice) async {
@@ -194,7 +203,9 @@ class ShareBottomSheet extends StatelessWidget {
         ).showSnackBar(SnackBar(content: Text('Error sharing PDF: $e')));
       }
     } finally {
-      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -271,7 +282,7 @@ class ShareBottomSheet extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _ActionBtn(
+                    child: _actionBtn(
                       icon: Icons.copy_rounded,
                       label: 'Copy',
                       color: theme.colorScheme.primary,
@@ -291,7 +302,7 @@ class ShareBottomSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _ActionBtnWithImage(
+                    child: _actionBtnWithImage(
                       imagePath: 'assets/icons/whatsapp.png',
                       label: 'WhatsApp',
                       color: const Color(0xFF25D366),
@@ -304,7 +315,7 @@ class ShareBottomSheet extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _ActionBtn(
+                    child: _actionBtn(
                       icon: Icons.share_rounded,
                       label: 'Share',
                       color: theme.colorScheme.primary,
@@ -313,7 +324,7 @@ class ShareBottomSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _ActionBtn(
+                    child: _actionBtn(
                       icon: Icons.download_rounded,
                       label: 'Download',
                       color: const Color(0xFFF59E0B),
@@ -337,7 +348,7 @@ class ShareBottomSheet extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _ActionBtn(
+                    child: _actionBtn(
                       icon: Icons.straighten_rounded,
                       label: 'Measurement PDF',
                       color: theme.colorScheme.primary,
@@ -346,7 +357,7 @@ class ShareBottomSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _ActionBtn(
+                    child: _actionBtn(
                       icon: Icons.rocket_launch_rounded,
                       label: 'Invoice PDF',
                       color: theme.colorScheme.primary,
@@ -484,7 +495,7 @@ class ShareBottomSheet extends StatelessWidget {
     }
   }
 
-  Widget _ActionBtn({
+  Widget _actionBtn({
     required IconData icon,
     required String label,
     required Color color,
@@ -540,7 +551,7 @@ class ShareBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _ActionBtnWithImage({
+  Widget _actionBtnWithImage({
     required String imagePath,
     required String label,
     required Color color,

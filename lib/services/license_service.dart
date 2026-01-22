@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_logger.dart';
 import 'firestore_service.dart';
-import '../services/app_logger.dart';
 
 /// License status response from server/Firestore
 class LicenseStatus {
@@ -69,19 +69,29 @@ class LicenseService {
   /// Returns determined status based on GRACE PERIOD validity.
   /// If offline and within 7 DAYS -> Active (Session is Valid)
   bool get isSessionValid {
-    if (_status.isLocked)
+    if (_status.isLocked) {
       return false; // Strict Lock: Persists until server unlocks
+    }
 
     // If never checked, we assume need validation, but don't lock immediately unless enforce strict first run?
     // User wants "no auto lock". So if null, we allow temporarily or force check depending on policy.
     // Here we treat null as "Unknown/Active" but request check.
-    if (_lastValidCheck == null) return true;
+    if (_lastValidCheck == null) {
+      return true;
+    }
 
     final diff = DateTime.now().difference(_lastValidCheck!);
     final isValid = diff < _gracePeriod;
 
     if (!isValid) {
-      AppLogger().warn('LICENSE', 'Grace period expired. Days: ${diff.inDays}');
+      // Getter cannot await. Fire and forget or use unawaited if available.
+      // Ignoring future strictly for linter compliance in synchronous getter.
+      unawaited(
+        AppLogger().warn(
+          'LICENSE',
+          'Grace period expired. Days: ${diff.inDays}',
+        ),
+      );
     }
     return isValid;
   }
@@ -112,7 +122,7 @@ class LicenseService {
       }
       return _status;
     } catch (e) {
-      AppLogger().error('LICENSE', 'Validation failed: $e');
+      await AppLogger().error('LICENSE', 'Validation failed: $e');
       // On failure, DO NOTHING. Keep current state.
       // isSessionValid will handle the 7-day expiry check.
       return _status;
@@ -133,7 +143,7 @@ class LicenseService {
       final prefs = await SharedPreferences.getInstance();
 
       // Store Status
-      Map<String, dynamic> data = {
+      final data = <String, dynamic>{
         'status': _status.status,
         'lockReason': _status.lockReason,
         'licenseExpiry': _status.licenseExpiry?.toIso8601String(),
@@ -146,7 +156,7 @@ class LicenseService {
         await prefs.setInt(_checkKey, _lastValidCheck!.millisecondsSinceEpoch);
       }
     } catch (e) {
-      AppLogger().error('LICENSE', 'Cache error: $e');
+      await AppLogger().error('LICENSE', 'Cache error: $e');
     }
   }
 
@@ -164,7 +174,7 @@ class LicenseService {
         _lastValidCheck = DateTime.fromMillisecondsSinceEpoch(lastSession);
       }
 
-      AppLogger().info(
+      await AppLogger().info(
         'LICENSE',
         'Loaded cache. Status=${_status.status}, GracePeriodRemaining=${_getGraceRemaining()}',
       );
@@ -172,18 +182,25 @@ class LicenseService {
   }
 
   String _getGraceRemaining() {
-    if (_lastValidCheck == null) return "First Run";
-    if (_status.isLocked) return "Locked";
+    if (_lastValidCheck == null) {
+      return 'First Run';
+    }
+    if (_status.isLocked) {
+      return 'Locked';
+    }
 
     final expiry = _lastValidCheck!.add(_gracePeriod);
     final remaining = expiry.difference(DateTime.now());
-    if (remaining.isNegative)
-      return "Expired (${remaining.inDays.abs()} days ago)";
-    return "${remaining.inDays}d ${remaining.inHours % 24}h";
+    if (remaining.isNegative) {
+      return 'Expired (${remaining.inDays.abs()} days ago)';
+    }
+    return '${remaining.inDays}d ${remaining.inHours % 24}h';
   }
 
   int get daysUntilExpiry {
-    if (_lastValidCheck == null) return 7;
+    if (_lastValidCheck == null) {
+      return 7;
+    }
     final expiry = _lastValidCheck!.add(_gracePeriod);
     return expiry.difference(DateTime.now()).inDays;
   }

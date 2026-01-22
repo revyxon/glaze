@@ -19,7 +19,9 @@ class DeviceRegistration {
   bool get isActive => status == 'active';
   bool get isLocked => status == 'locked';
   bool get isExpired {
-    if (status == 'expired') return true;
+    if (status == 'expired') {
+      return true;
+    }
     if (licenseExpiry != null && DateTime.now().isAfter(licenseExpiry!)) {
       return true;
     }

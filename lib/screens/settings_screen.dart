@@ -1,30 +1,28 @@
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_boxicons/flutter_boxicons.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+import 'package:heroicons/heroicons.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:remixicon/remixicon.dart';
+
 import '../db/database_helper.dart';
-import '../providers/settings_provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/device_id_service.dart';
 import '../services/sync_service.dart';
-import '../ui/design_system.dart';
-// Added import for AppCardStyle
-import '../ui/components/app_icon.dart';
+import '../ui/components/animated_theme_icon.dart';
 import '../ui/components/app_header.dart';
+import '../ui/components/app_icon.dart';
 import '../ui/components/settings_section.dart';
+import '../ui/design_system.dart';
+import '../ui/dialogs/restore_dialog.dart';
 import '../utils/haptics.dart';
 import 'about_screen.dart';
 import 'log_viewer_screen.dart';
-
-import '../ui/components/animated_theme_icon.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:remixicon/remixicon.dart';
-import 'package:lucide_icons/lucide_icons.dart';
-import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
-import 'package:heroicons/heroicons.dart';
-import 'package:eva_icons_flutter/eva_icons_flutter.dart';
-import 'package:flutter_boxicons/flutter_boxicons.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../ui/dialogs/restore_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -248,8 +246,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 max: 1.3,
                                 divisions: 10,
                                 onChanged: (v) {
-                                  if (settings.hapticFeedback)
+                                  if (settings.hapticFeedback) {
                                     Haptics.selection();
+                                  }
                                   settings.setFontSize(v);
                                 },
                               ),
@@ -313,7 +312,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Switch(
                               value: settings.hapticFeedback,
                               onChanged: (v) {
-                                if (v) Haptics.medium();
+                                if (v) {
+                                  Haptics.medium();
+                                }
                                 settings.setHapticFeedback(v);
                               },
                             ),
@@ -339,12 +340,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         trailing: Switch(
                           value: settings.countHoldOnTotal,
                           onChanged: (v) {
-                            if (settings.hapticFeedback) Haptics.selection();
+                            if (settings.hapticFeedback) {
+                              Haptics.selection();
+                            }
                             settings.setCountHoldOnTotal(v);
                           },
                         ),
                         onTap: () {
-                          if (settings.hapticFeedback) Haptics.selection();
+                          if (settings.hapticFeedback) {
+                            Haptics.selection();
+                          }
                           settings.setCountHoldOnTotal(
                             !settings.countHoldOnTotal,
                           );
@@ -379,6 +384,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: 'Force Resync',
                         subtitle: 'Re-upload all data to cloud',
                         onTap: () => _handleForceResync(context),
+                      ),
+                      _SettingsTile(
+                        icon: AppIconType.refresh,
+                        iconColor: Colors.blue,
+                        title: 'Repair & Sync',
+                        subtitle: 'Clean up deleted records & sync',
+                        onTap: () => _handleRepairSync(context),
                       ),
                       _SettingsTile(
                         icon: AppIconType.delete,
@@ -469,8 +481,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Cupertino Icons';
       case IconPack.lucide:
         return 'Lucide Icons';
-      case IconPack.huge:
-        return 'Huge Icons';
       case IconPack.remix:
         return 'Remix Icons';
       case IconPack.boxicons:
@@ -483,8 +493,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Eva Icons';
       case IconPack.tabler:
         return 'Tabler Icons';
-      case IconPack.fontAwesome:
-        return 'Font Awesome';
     }
   }
 
@@ -533,7 +541,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   return GestureDetector(
                     onTap: () {
-                      if (settings.hapticFeedback) Haptics.selection();
+                      if (settings.hapticFeedback) {
+                        Haptics.selection();
+                      }
                       settings.setAccentColor(i);
                       Navigator.pop(context);
                     },
@@ -612,13 +622,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         case IconPack.material:
           return ('Material', 'Google Material Design', Icons.android);
         case IconPack.fluent:
-          return (
-            'Fluent',
-            'Microsoft Fluent Design',
-            FontAwesomeIcons.microsoft,
-          );
+          return ('Fluent', 'Microsoft Fluent Design', Icons.window_rounded);
         case IconPack.cupertino:
-          return ('Cupertino', 'Apple Human Interface', FontAwesomeIcons.apple);
+          return ('Cupertino', 'Apple Human Interface', Icons.apple);
         case IconPack.phosphor:
           return (
             'Phosphor',
@@ -641,19 +647,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return ('Eva Icons', 'Open source icons', EvaIcons.heartOutline);
         case IconPack.boxicons:
           return ('BoxIcons', 'High quality web icons', Boxicons.bxs_cube);
-        case IconPack.huge:
-          return (
-            'Huge Icons',
-            'Modern & clean',
-            // Fallback to standard Icon to avoid type errors
-            const Icon(Icons.grid_view_rounded),
-          );
-        case IconPack.fontAwesome:
-          return (
-            'Font Awesome',
-            'The iconic font',
-            const FaIcon(FontAwesomeIcons.fontAwesome),
-          );
       }
     }
 
@@ -750,7 +743,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   return GestureDetector(
                     onTap: () {
-                      if (settings.hapticFeedback) Haptics.selection();
+                      if (settings.hapticFeedback) {
+                        Haptics.selection();
+                      }
                       settings.setSurfaceVariant(variant);
                       Navigator.pop(context);
                     },
@@ -911,7 +906,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             )
                           : null,
                       onTap: () {
-                        if (settings.hapticFeedback) Haptics.selection();
+                        if (settings.hapticFeedback) {
+                          Haptics.selection();
+                        }
                         settings.setFontFamily(family);
                         Navigator.pop(context);
                       },
@@ -950,12 +947,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               await SyncService().clearCloudData();
               await DatabaseHelper.instance.clearAllData();
-              if (mounted) {
+              if (mounted && context.mounted) {
                 await Provider.of<AppProvider>(
                   context,
                   listen: false,
                 ).loadCustomers();
-                _loadData();
+                if (!mounted) {
+                  return;
+                }
+                await _loadData();
+                if (!context.mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('All data cleared'),
@@ -992,13 +995,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirmed == true && mounted) {
       await DatabaseHelper.instance.markAllAsUnsynced();
-      SyncService().syncData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Resync started'),
-          backgroundColor: Colors.green,
+      await SyncService().syncData();
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Resync started'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleRepairSync(BuildContext context) async {
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Repair & Sync?'),
+        content: const Text(
+          'This will purge any residual soft-deleted records and perform a fresh synchronization.',
         ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Repair'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      if (!mounted) {
+        return;
+      }
+      await appProvider.repairData();
+
+      if (mounted && context.mounted) {
+        await _loadData(); // Refresh local counts
+        if (mounted && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Database repair and sync completed'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+      }
     }
   }
 }
@@ -1075,17 +1123,8 @@ class _SettingsTile extends StatelessWidget {
               trailing!,
             ] else if (onTap != null) ...[
               const SizedBox(width: AppSpacing.md),
-              AppIcon(
+              const AppIcon(
                 AppIconType.back, // Using 'back' icon as generic chevron/arrow
-                overridePack: IconPack
-                    .material, // Force material for consistent UI arrows? Or use specialized type?
-                // Actually 'AppIconType.back' is usually a left arrow. We need a right arrow.
-                // Let's rely on standard Icon for structural navigation or add 'chevronRight' to AppIconType.
-                // For now, let's revert this specific line to a standard Icon OR add AppIconType.chevronRight.
-                // Reverting to standard Icon for chevron right as it's a structural element often independent of icon pack.
-                // OR better: Add `AppIconType.arrowRight` or just use standard Icon for this utility.
-                // User asked for "10 best icons... har chiz dekho".
-                // I will use a standard structural icon for now to avoid breaking.
               ),
             ],
           ],

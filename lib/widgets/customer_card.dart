@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/customer.dart';
 import '../providers/settings_provider.dart';
-import '../ui/components/app_card.dart';
-import '../ui/design_system.dart';
-import '../ui/components/app_icon.dart';
-import '../utils/haptics.dart';
-import '../utils/fast_page_route.dart';
 import '../screens/customer_detail_screen.dart';
+import '../ui/components/app_card.dart';
+import '../ui/components/app_icon.dart';
+import '../ui/design_system.dart';
+import '../utils/fast_page_route.dart';
+import '../utils/haptics.dart';
 
 /// Fixed green badge color - NOT theme dependent
 const _badgeGreen = Color(0xFF10B981);
@@ -27,7 +27,9 @@ class CustomerCard extends StatelessWidget {
       child: AppCard(
         padding: const EdgeInsets.all(AppSpacing.lg),
         onPressed: () {
-          if (settings.hapticFeedback) Haptics.light();
+          if (settings.hapticFeedback) {
+            Haptics.light();
+          }
           Navigator.push(
             context,
             FastPageRoute(page: CustomerDetailScreen(customer: customer)),
@@ -54,20 +56,21 @@ class CustomerCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
 
-            // Location
+            // Location & Phone
             Row(
               children: [
                 AppIcon(
                   AppIconType.location,
-                  size: 16,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  size: 14,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     customer.location,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 11,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -157,7 +160,7 @@ class CustomerCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle_rounded, size: 14, color: _badgeGreen),
+          const AppIcon(AppIconType.check, size: 14, color: _badgeGreen),
           const SizedBox(width: 4),
           Text(
             'Final',

@@ -23,7 +23,8 @@ class SettingsProvider with ChangeNotifier {
   FontFamily _fontFamily = FontFamily.inter;
   double _fontSize = 1.0;
   int _accentColorIndex = 3;
-  AppSurfaceVariant _surfaceVariant = AppSurfaceVariant.softWhite;
+  AppSurfaceVariant _surfaceVariant =
+      AppSurfaceVariant.softWhite; // Default Soft White (1)
   bool _hapticFeedback = true;
   bool _countHoldOnTotal = true;
   double _displayedFormula = 90903.0;
@@ -138,7 +139,7 @@ class SettingsProvider with ChangeNotifier {
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final themeIndex = prefs.getInt(_themeKey) ?? 2;
+    final themeIndex = prefs.getInt(_themeKey) ?? 1; // Default Light
     _themeMode =
         ThemeMode.values[themeIndex.clamp(0, ThemeMode.values.length - 1)];
 

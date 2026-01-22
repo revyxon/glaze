@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../db/database_helper.dart';
 import '../models/activity_log.dart';
-import 'device_id_service.dart';
 import 'app_logger.dart';
+import 'device_id_service.dart';
 
 class LogService {
   static final LogService _instance = LogService._internal();
@@ -33,7 +33,7 @@ class LogService {
 
       await DatabaseHelper.instance.createActivityLog(log);
     } catch (e) {
-      _logger.error('LOG', 'Failed to log event: $e');
+      await _logger.error('LOG', 'Failed to log event: $e');
     }
   }
 
@@ -109,10 +109,10 @@ class LogService {
     try {
       final count = await DatabaseHelper.instance.cleanOldActivityLogs();
       if (count > 0) {
-        _logger.info('LOG', 'Cleaned up $count old activity logs');
+        await _logger.info('LOG', 'Cleaned up $count old activity logs');
       }
     } catch (e) {
-      _logger.error('LOG', 'Cleanup failed: $e');
+      await _logger.error('LOG', 'Cleanup failed: $e');
     }
   }
 }

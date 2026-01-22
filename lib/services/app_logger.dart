@@ -79,7 +79,9 @@ class AppLogger {
 
   /// Initialize and load existing logs
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (_initialized) {
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_storageKey);
@@ -88,7 +90,7 @@ class AppLogger {
       try {
         final List<dynamic> decoded = jsonDecode(stored);
         _logs.clear();
-        for (var item in decoded) {
+        for (final item in decoded) {
           _logs.add(LogEntry.fromJson(item));
         }
       } catch (e) {
@@ -101,7 +103,11 @@ class AppLogger {
     await _cleanOldLogs();
     _initialized = true;
 
-    info('LOGGER', 'App Logger initialized', 'Total logs: ${_logs.length}');
+    await info(
+      'LOGGER',
+      'App Logger initialized',
+      'Total logs: ${_logs.length}',
+    );
   }
 
   /// Clean logs older than 24 hours

@@ -127,12 +127,15 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primaryColor;
+          if (states.contains(WidgetState.selected)) {
+            return primaryColor;
+          }
           return null;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected))
+          if (states.contains(WidgetState.selected)) {
             return primaryColor.withValues(alpha: 0.5);
+          }
           return null;
         }),
       ),
@@ -178,7 +181,7 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       fontFamily: _getFontFamily(settings.fontFamily),
       textTheme: _buildTextTheme(onSurface, onSurfaceVariant, fontMultiplier),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: background,
         foregroundColor: onSurface,
         elevation: 0,
@@ -247,10 +250,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.xl),
         ),
       ),
-      bottomSheetTheme: BottomSheetThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: surfaceElevated,
         elevation: 0,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppRadius.xl),
           ),
@@ -266,12 +269,15 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primaryColor;
+          if (states.contains(WidgetState.selected)) {
+            return primaryColor;
+          }
           return null;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected))
+          if (states.contains(WidgetState.selected)) {
             return primaryColor.withValues(alpha: 0.5);
+          }
           return null;
         }),
       ),

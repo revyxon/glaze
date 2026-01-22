@@ -1,13 +1,14 @@
+import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 
 import '../models/customer.dart';
 import '../models/window.dart';
-import 'pdf_templates/measurement_pdf.dart';
 import 'pdf_templates/invoice_pdf.dart';
+import 'pdf_templates/measurement_pdf.dart';
 
 class PrintService {
   /// Generates the PDF bytes based on the type (Invoice or Measurement Sheet)

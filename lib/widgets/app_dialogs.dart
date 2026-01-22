@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 /// Reusable confirmation dialogs with consistent styling.
@@ -100,48 +101,52 @@ abstract class AppDialogs {
   }) async {
     final theme = Theme.of(context);
 
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        Future.delayed(duration, () {
-          if (context.mounted) Navigator.pop(context);
-        });
+    unawaited(
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) {
+          Future.delayed(duration, () {
+            if (context.mounted) {
+              Navigator.pop(context);
+            }
+          });
 
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.check_circle_rounded,
-                color: theme.colorScheme.primary,
-                size: 48,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 48,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              if (message != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Text(
-                  message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
                 ),
+                if (message != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ],
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
   }
 
